@@ -1,0 +1,17 @@
+\section{Conclusion}
+In this paper, we study the role of edge heterophily in carrying local information for GAD.
+%and extend spectral GNNs by introducing edge semantics into the graph operator on which the filter bank is defined.
+Motivated by this view, we propose ESO-GAD, which trains an edge calibrator to estimate heterophily probabilities and encodes them into a signed normalized Laplacian $\bm{L}_\eta$, with an adaptive calibration strength $\eta$.
+ESO-GAD then applies a Beta-wavelet filter bank to $\bm{L}_\eta$ and combines its channels through a KL-anchored simplex gate to predict anomaly labels.
+Under the GADBench protocol, ESO-GAD consistently improves over its unsigned BWGNN backbone and outperforms most baselines on the seven evaluated datasets.
+The main drawback is that the signed operator inherits the bias of the edge calibrator, which is frozen before node-level training.
+A feasible extension is therefore to relax this separation and update the calibrator jointly with the spectral filters.
+Alternative spectral backbones instead of the Beta-wavelet filter are also promising combinations with our proposed signed operator.
+
+
+
+
+
+%%
+%% The next two lines define the bibliography style to be used, and
+%% the bibliography file.

@@ -1,0 +1,153 @@
+\begin{table*}[t]
+\centering
+\caption{Results with mean $\pm$ std on seven real-world datasets in terms of AUROC.
+The bold and underlined values denote the best and second-best results, respectively.}
+\setlength{\tabcolsep}{5.5pt}
+\renewcommand{\arraystretch}{1.08}
+
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccccc}
+\toprule
+\textbf{Methods}
+& \textbf{Amazon}
+& \textbf{YelpChi}
+& \textbf{T-Finance}
+& \textbf{Toloker}
+& \textbf{Reddit}
+& \textbf{Weibo }
+& \textbf{Questions}\\
+\midrule
+
+% Group 1: General GNN baselines
+GAT
+& \val{92.44}{1.92}
+& \val{65.26}{4.00}
+& \val{84.98}{4.55}
+& \val{68.06}{2.98}
+& \val{60.55}{3.88}
+& \val{86.83}{7.70} 
+& \val{62.32}{1.46}\\
+
+GCN
+& \val{82.03}{0.33}
+& \val{51.15}{3.70}
+& \val{88.22}{2.36}
+& \val{64.22}{4.82}
+& \val{56.90}{5.93}
+& \val{93.47}{6.58} 
+& \val{59.99}{2.30}\\
+
+GraphSAGE
+& \val{79.23}{3.06}
+& \val{59.79}{5.12}
+& \val{69.24}{3.70}
+& \val{67.40}{3.17}
+& \val{58.59}{6.35}
+& \val{81.00}{5.78} 
+& \val{61.58}{2.90}\\
+
+\midrule
+
+% Group 2: Graph fraud detection baselines
+PCGNN
+& \second{93.22}{1.21}
+& \val{65.09}{4.80}
+& \val{92.01}{1.12}
+& \val{67.38}{2.09}
+& \val{52.83}{3.44}
+& \val{83.90}{8.08}
+& \val{59.03 }{4.21} \\
+
+ConsisGAD
+& \val{93.05}{1.41}
+& \val{62.70}{4.44}
+& \best{94.53}{1.25}
+& \val{67.79}{2.48}
+& \val{58.71}{3.82}
+& \val{77.59}{2.52}
+& \val{61.92 }{6.12}\\
+
+GAGA
+& \val{91.11}{2.12}
+& \val{53.48}{4.26}
+& \val{86.64}{10.42}
+& \val{60.52}{4.24}
+& \val{56.79}{2.72}
+& \val{71.23}{11.98}
+& \val{51.29}{2.78}\\
+
+\midrule
+
+% Group 3: Main comparison methods
+BWGNN
+& \val{91.90}{2.16}
+& \val{64.39}{3.36}
+& \val{92.12}{2.75}
+& \val{68.42}{2.72}
+& \val{57.72}{4.96}
+& \val{93.65}{3.99}
+& \val{60.18}{5.02}\\
+
+ChiGNN
+& \val{92.58}{2.23}
+& \val{63.64}{3.83}
+& \val{91.99}{1.00}
+& \val{67.50}{5.64}
+& \val{58.82}{4.58}
+& \val{83.58}{3.98}
+& \val{60.46}{6.98}\\
+
+GHRN
+& \val{90.99}{1.98}
+& \val{63.45}{3.43}
+& \val{92.58}{0.65}
+& \second{69.01}{2.18}
+& \val{57.53}{4.53}
+& \val{91.62}{4.41} 
+& \val{60.54}{7.11}\\
+
+AMNet
+& \val{92.74}{2.13}
+& \val{64.80}{5.24}
+& \val{92.66}{0.85}
+& \val{61.62}{4.01}
+& \second{62.95}{1.79}
+& \val{82.39}{4.57}
+& \second{63.59}{3.07}\\
+
+SEC-GFD
+& \val{91.23}{2.35}
+& \second{65.27}{2.69}
+& \val{90.92}{1.89}
+& \val{67.80}{3.39}
+& \val{57.04}{3.37}
+& \val{93.90}{3.94}
+& \val{62.03}{3.14}\\
+
+DSGAD
+& \val{92.07}{2.21}
+& \val{62.93}{2.54}
+& \val{93.22}{1.16}
+& \val{66.35}{2.75}
+& \val{59.39}{5.73}
+& \second{94.11}{1.23}
+& \val{60.09}{6.23}\\
+
+\midrule
+
+% Group 4: Proposed method
+\textbf{ESO-GAD (ours)}
+& \best{94.12}{1.37}
+& \best{69.74}{2.45}
+& \second{94.26}{0.36}
+& \best{73.18}{1.53}
+& \best{66.12}{1.22}
+& \best{96.97}{2.10}
+& \best{68.54}{2.55}\\
+
+\bottomrule
+\end{tabular}%
+}
+
+\label{tab:ESO_gad_auroc}
+\end{table*}

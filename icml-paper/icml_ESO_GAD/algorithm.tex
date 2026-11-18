@@ -1,0 +1,21 @@
+\begin{algorithm}[h]
+\caption{ESO-GAD training}
+\label{alg:ecsbwgnn}
+\begin{algorithmic}[1]
+\REQUIRE Graph $G$, labeled set $\mathcal{V}_L$ with labels $y_L$, wavelet order $P$, predicted score matrix $\hat{\bm Q}=[\hat q_{uv}]$
+%\STATE Initialize $\eta$, gate logits $a$, encoder paramters $\theta$, and classifier parameters $\omega$
+\FOR{epochs=$1,\dots$}
+  \STATE $\hat s_{uv} \gets 1-2\hat{q}_{uv}$
+  \STATE Compute $W^{(\eta)}$ and $D^{(\eta)}$ using Eqs.~\eqref{eq:weta} and~\eqref{eq:degreelaplacian}
+  \STATE $L_\eta \gets I - D^{(\eta)-1/2}W^{(\eta)}D^{(\eta)-1/2}$
+  \STATE $\bm H^{(0)} \gets \text{MLP}_\psi(X)$
+  \FOR{$k=0,\dots,P$}
+    \STATE $\bm H_k \gets \Wk(\Lb)\,\bm H^{(0)}$
+  \ENDFOR
+  \STATE $\bm{g} \gets \mathrm{softmax}(\bm{a})$; $\bm Z \gets \big\Vert_{k=0}^{P}\sqrt{g_k}\,\bm{H}_k$
+  \STATE $\hat{\bm{y}} \gets \text{MLP}_\omega(Z)$
+  \STATE $\mathcal L \gets \mathcal{L}_{\mathrm{BCE}}(\bm{y}^L,\hat{\bm{y}}^L) +\alpha\, D_{\mathrm{KL}}\!\bigl(\bm{g}\,\Vert\,\bm{g}_0\bigr)$
+  \STATE Update $(\psi,\omega,\eta,a)$ on $\mathcal L$
+\ENDFOR
+\end{algorithmic}
+\end{algorithm}

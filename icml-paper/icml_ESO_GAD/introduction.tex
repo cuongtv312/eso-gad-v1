@@ -1,0 +1,36 @@
+Graph anomaly detection (GAD) aims to identify a small set of outlier nodes and is a fundamental task in graph-based applications such as fraudulent transaction detection, malicious user identification and spam detection \citep{GADSurvey, GADBench}.
+In the semi-supervised setting, graph neural networks provide a standard framework for learning to identify target outlier nodes from input features and graph structure.
+However, due to the scarcity of training data, popular GNNs such as the Graph Convolutional Network (GCN) \citep{GCN} and the Graph Attention Network (GAT) \citep{GAT} suffer from under-performance, as their low-pass filters smooth out the high-frequency components carried by anomalous nodes.
+Recent GNN-based detectors have improved anomaly detection through specific mechanisms such as class-balanced sampling, label-aware grouping and consistency regularization \citep{PCGNN,GAGA,ConsisGAD}.
+
+By extending the low-pass filters of GCN, general spectral GNNs offer a flexible approach to integrating node attributes and local structure through functions of a graph Laplacian.
+With designed polynomial bases, different spectral architectures can learn or approximate responses over specific frequency regions on the graph \citep{defferrard2016convolutional,BernNet}.
+In GAD, \citet{AMNet} propose adaptive frequency filters that fuse low- and high-frequency information for classifying anomalous nodes.
+Beta-wavelet filters provide an effective way to capture information from multiple frequency bands and are able to identify a spectral right-shift associated with target nodes \citep{BWGNN}.
+Subsequent methods further connect graph heterophily with anomaly signals, for example by suppressing harmful interclass connections, combining structural constraints with spectral filters, or learning dynamic and wavelet-specific spectral responses \citep{GHRN,SEC-GFD,DSGAD,ChiGAD}.
+
+Spectral methods for GAD such as AMNet \citep{AMNet} and BWGNN \citep{BWGNN} nevertheless focus on separating low-frequency and high-frequency bands over an unsigned spectral operator.
+In these approaches, heterophilic edges are consequently treated as noise and are either smoothed out or pruned, which removes the local information they carry.
+The underlying reason is that the unsigned Laplacian can only express a similarity relation between two endpoints of a given edge.
+Since graph frequency is defined relative to the chosen Laplacian, a label transition appears as high-frequency energy partly because the unsigned operator incorrectly expects agreement across that edge.
+This motivates encoding the local semantics of heterophilic edges, where anomalies typically reside, directly into the construction of the spectral filter.
+Recent work on edge heterophily discrimination supports this view by showing that homophilic and heterophilic edges can be inferred and used differently rather than uniformly smoothed \citep{GREET,H2-FDetector}.
+Meanwhile, signed spectral analysis shows that a signed Laplacian supports learnable frequency-domain architectures on graphs with both positive and negative interactions \citep{KunegisSigned,MSGNN}.
+However, transferring this principle to semi-supervised GAD remains challenging.
+The first difficulty is that edge semantics must be estimated from a small and severely
+imbalanced labeled set, so a hard sign assignment is unreliable.
+Secondly, any estimation error of the estimated edge semantics propagates into the later spectral operator, which destabilizes the learning of the anomaly signal.
+
+In this work, we propose ESO-GAD, an \textbf{E}dge-calibrated \textbf{S}igned \textbf{O}perator for \textbf{G}raph \textbf{A}nomaly \textbf{D}etection that encodes edge semantics into the operator on which a Beta-wavelet filter bank is defined.
+We first estimate the probability that an edge joins nodes of different classes with an edge calibrator built on symmetric endpoint descriptors and structural descriptors.
+The calibrator is trained on edge labels that are approximately constructed from the labeled node training set.
+After the calibration phase, the estimated heterophily probabilities are converted into soft edge signs and integrated into a signed normalized Laplacian.
+This conversion is governed by a learnable calibration strength that determines how far the model commits to the estimated probabilities, acting simultaneously as a global gain and as a sign-flip threshold.
+The calibration mechanism allows ESO-GAD to control how much estimation error from the calibration phase propagates into the construction of the Laplacian.
+The resulting Laplacian defines a signed spectral operator that supports multi-frequency filtering.
+An additional gating mechanism anchored by a Kullback-Leibler (KL) term then combines the signals from different frequency bands to identify anomalous nodes.
+Under the GADBench protocol \citep{GADBench}, ESO-GAD improves upon the unsigned BWGNN backbone and recent spectral and spatial baselines on seven real-world datasets in terms of AUROC and AUPRC.
+On the theoretical side, we show that with correct signs the signed operator is a change of gauge that makes a heterophilic graph spectrally equivalent to a homophilic one, and that for an arbitrary calibrator the frequency of the label signal equals twice the weighted fraction of wrongly signed edges.
+At node level, we prove that signing keeps the evidence that pruning discards and that soft signs are the optimal edge weights under uncertain edge semantics, which identifies the calibration strength as a recalibration slope for the frozen scores.
+We further characterize what singly-labeled edges can identify, and we establish the stability of the operator and of the learned representation with degree-free constants in the local and Brier calibration errors.
+Overall, ESO-GAD provides a principled connection between edge heterophily, signed spectral operators, and multi-frequency anomaly representations.

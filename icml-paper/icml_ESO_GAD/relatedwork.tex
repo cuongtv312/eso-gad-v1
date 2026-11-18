@@ -1,0 +1,32 @@
+%In recent years, Graph Neural Networks (GNNs) have emerged as a powerful framework for anomaly detection by identifying fraudulent nodes whose behaviors differ from those of benign nodes \citep{GADBench, GADSurvey}. Existing GNN-based anomaly detection approaches can be classified into two major categories: spectral methods and spatial methods. 
+\noindent \textbf{Spatial GNNs for GAD.}
+Spatial methods typically detect anomalies by aggregating and transforming information from local neighborhoods. 
+To overcome the smoothing effects in spatial filters, most methods focus on improving neighbor selection and
+aggregation under fraud camouflage and graph heterophily. 
+For example, CARE-GNN \citep{CARE-GNN} employs reinforcement learning to adaptively select informative neighbors and suppress potentially irrelevant messages. 
+PC-GNN \citep{PCGNN} further addresses fraud camouflage and severe class imbalance through label-balanced node sampling and selective neighborhood aggregation. 
+Additionally, GAGA~\citep{GAGA} improves anomaly detection on low-homophily graphs by organizing neighboring nodes into label-aware groups and encoding their group-level interactions. 
+In contrast,  ConsisGAD~\citep{ConsisGAD} focuses on limited supervision by combining pseudo-label generation with consistency regularization.
+%to exploit the information contained in unlabeled nodes.
+
+\noindent \textbf{Spectral GNNs for GAD.}
+Spectral GNNs are an important branch of GNNs that interpret node features as graph signals and process them through frequency-domain operations~\citep{xu2020graph}.
+Early approaches typically adopt basic linear filters, such as GCN~\citep{GCN}, which is a first-order approximation of ChebyNet with low-pass behavior.
+Several later approaches employ polynomial parameterizations to construct more flexible spectral responses. 
+AMNet ~\citep{AMNet} learns separate low- and high-frequency filters based on Bernstein polynomials. Similarly, Jacobi \citep{JacobiConv} and BernNet \citep{BernNet} construct adaptive filters using Jacobi and Bernstein polynomial bases to adapt the filter response to different spectral regions.  
+Despite their different bases and parameterizations, these methods mainly focus on learning a suitable frequency response over a given graph operator.
+Another line of research develops graph-wavelet-based models which jointly capture spatial locality and frequency information for GAD tasks.
+BWGNN \citep{BWGNN} identifies a spectral right-shift phenomenon associated with anomalous nodes and constructs a Beta-wavelet filter bank to capture anomaly-related information across multiple frequency bands.
+GHRN~\citep{GHRN} exploits the relationship between graph heterophily and high-frequency signals and suppresses potentially harmful inter-class connections to improve anomaly detection.
+Building upon multi-frequency spectral modeling, recent detectors further diversify filter
+designs, such as hybrid spectral filters~\citep{SEC-GFD},  trainable dynamic wavelets~\citep{DSGAD} and Chi-Square wavelet filters~\citep{ChiGAD}.
+
+\noindent \textbf{Signed Operators and Edge Heterophily.}
+Classical spectral analysis of signed graphs shows that edges carrying negative weights yield a signed Laplacian that is positive semi-definite with valid spectrum~\citep{KunegisSigned}.
+MSGNN~\citep{MSGNN} later extends this construction to a magnetic signed Laplacian for directed signed graphs.
+In the heterophilic setting, FAGCN~\citep{FAGCN} learns signed attention coefficients to mix low- and high-frequency signals.
+H\textsuperscript{2}-FDetector~\citep{H2-FDetector} propagates opposite-sign messages along predicted heterophilic connections.
+Recently, GREET~\citep{GREET} proposes a method to explicitly discriminate
+homophilic from heterophilic edges to guide representation learning instead of pruning them.
+
+

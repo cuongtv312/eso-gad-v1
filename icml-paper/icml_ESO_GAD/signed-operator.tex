@@ -1,0 +1,137 @@
+The signed operator is designed based on the assumption that the edge semantic can be represented under a signed, continuous value rather than a binary decision.
+Given the predicted heterophily score $\hat{q}_{uv}$ in Phase 1, we start by constructing the signed adjacency matrix $\hat{S} = [\hat{s}_{uv}]$ 
+\begin{equation}
+    \hat{s}_{uv} = 1 - 2 \hat{q}_{uv},
+    \label{eq:suv}
+\end{equation}
+with $\hat{s}_{uv} \in [-1,1]$.
+Note that if we know the true value $s_{uv}$ we can easily reconstruct the underlying labels from the training nodes.
+However, due to the lack of node labels in semi-supervised settings, we only have a noisy estimate of $s_{uv}$ through $\hat{q}_{uv}$.
+
+To incorporate the uncertainty of heterophilic edge semantics, we introduce a
+learned parameter $\eta\in[0,1]$ as the signed weight applied to the self-looped
+adjacency matrix $\tilde{\bm A}$,
+\begin{equation}
+    \bm{W}^{(\eta)} \;=\; \tilde{\bm{A}}\odot\bigl[(1-\eta)\bm{1}\bm{1}^{\!\top}
+    + \eta\,\hat{\bm{S}}\bigr],
+    \label{eq:weta}
+\end{equation}
+where $\hat{\bm S}=\bm{1}\bm{1}^{\!\top}-2\hat{\bm Q}$ is the soft sign matrix
+induced by the frozen probabilities $\hat{\bm Q}=[\hat q_{uv}]$,
+with $\hat q_{uv}=\hat q_{vu}\in[0,1]$ and $\hat q_{uu}\equiv 0$.
+Expanding Eq.~\eqref{eq:weta} entrywise gives the scalar form
+\begin{equation}
+W^{(\eta)}_{uv} \;=\; \tilde A_{uv}\,\bigl(1-2\eta\,\hat q_{uv}\bigr).
+\label{eq:Wentry}
+\end{equation}
+The role of calibration strength $\eta$ is a global gain on the signed correction.
+When edge predictions are unreliable, $\eta$ can shrink to $0$ and the operator reduces to the unsigned Laplacian of BWGNN.
+ESO-GAD therefore extends BWGNN along the operator axis, providing the same filter bank with a spectrum that carries calibrated edge semantics.
+Moreover, the same scalar controls where signs flip.
+Since $W^{(\eta)}_{uv}<0$ requires $\hat q_{uv}>1/(2\eta)$, and
+since $\hat q_{uv}\le 1$, no edge can change sign unless $\eta>\tfrac12$.
+For $\eta>0$, an edge is exactly pruned when $\hat q_{uv}=1/(2\eta)$.
+Because Eq.~\eqref{eq:Wentry} is affine in
+$\hat q_{uv}$, no choice of $\eta$ reproduces a thresholded pruning rule, and edge deletion survives only on the measure-zero level set $\{\hat q_{uv}=1/(2\eta)\}$.
+This distinguishes ESO-GAD from hard-pruning approaches to heterophily \citep{GHRN, CARE-GNN}, which discard inter-class edges and therefore
+receive no gradient signal from them once removed.
+By contrast, training $\eta$ jointly with the filters lets the model invert, or restore the contribution of a predicted-heterophilic edge, and every edge retains a gradient path throughout optimization.
+Besides the signed weight calibration in Eq.~\eqref{eq:weta}, reweighting approaches such as \citep{SEC-GFD} can be used to construct the operator.
+We provide a comparison with pruning and reweighting approaches in the experimental section.
+
+The signed weights $W^{(\eta)}_{uv}$ in Eq.~\eqref{eq:Wentry} break the usual degree normalization due to the possible negative values.
+Therefore, we normalize the degree by using the absolute degree \citep{KunegisSigned}:
+\begin{equation}
+D^{(\eta)}_{uu}=\textstyle\sum_v \bigl|W^{(\eta)}_{uv}\bigr|,
+\label{eq:degreelaplacian}
+\end{equation}
+and create the Laplacian accordingly
+\begin{equation}
+\Lb \;=\; \bm{I}-\Db{}^{-1/2}\,\Wb\,\Db{}^{-1/2}.
+\label{eq:laplacian}
+\end{equation}
+Its quadratic form decomposes edge-wise as
+\begin{equation}
+\bm{h}^{\!\top}\Lb\bm{h}
+=\tfrac12\sum_{u,v}\bigl|W^{(\eta)}_{uv}\bigr|
+\Bigl(\tfrac{h_u}{\sqrt{D^{(\eta)}_{uu}}}-\sgn\!\bigl(W^{(\eta)}_{uv}\bigr)\tfrac{h_v}{\sqrt{D^{(\eta)}_{vv}}}\Bigr)^{\!2},
+\label{eq:quadform}
+\end{equation}
+which smooths across positively signed edges and enforces contrast across negatively signed ones, with per-edge strength $|1-2\eta \hat{q}_{uv}|$.
+Heterophilic edges from the calibration phase are retained with reversed semantics rather than discarded like other pruning-based approaches.
+
+Following BWGNN~\citep{BWGNN}, the $k$-th channel applies the Beta-wavelet kernel to $\Lb$, with the spectrum mapped from $[0,2]$ to the Beta support $[0,1]$ as:
+\begin{equation}
+\Wk(\Lb)
+=\frac{1}{2\,\mathrm B(k{+}1,\,P{-}k{+}1)}
+\Bigl(\tfrac{\Lb}{2}\Bigr)^{\!k}
+\Bigl(\bm I-\tfrac{\Lb}{2}\Bigr)^{\!P-k},
+\label{eq:betakernel}
+\end{equation}
+for $k=0,\dots,P$, giving $P+1$ channels in total.
+In Eq.~\eqref{eq:betakernel}, $\mathrm B(\cdot,\cdot)$ is the Beta function, $P$ is the wavelet order and
+the factor $\tfrac12$ is the Jacobian of the rescaling.
+Under this formulation, the channel $k=0$  and $k=P$ are the low-pass filter and the high-pass filter, respectively.
+Intermediate channels cover band-pass responses whose peaks sweep monotonically across the calibrated spectrum.
+It is required that the kernel $\Wk(\Lb)$ is valid for any $\Lb$ constructed from the learned $\hat{q}_{uv}$ and a valid $\eta$, which is established by Proposition~\ref{prop:valid}.
+\begin{proposition}[Spectral validity]\label{prop:valid}
+For every $\hat q\in[0,1]^{|\mathcal E|}$ and every $\eta\ge0$, in particular for every $\eta\in[0,1]$, the following conditions hold
+\[
+\Db\succeq \bm I \succ 0
+\qquad\text{and}\qquad
+\lambda_i\in[0,2],
+\]
+where $\lambda_i$ is an eigenvalue of $\Lb$.
+\end{proposition}
+%As a result, every Beta-wavelet kernel $\Wk(\Lb)$ of Eq.~\eqref{eq:betakernel} is well defined
+In implementation, the product form in Eq.~\eqref{eq:betakernel} is not computed directly.
+Instead, each kernel is pre-expanded into monomials of $\Lb$ with fixed coefficients $\theta^{(k)}_j$,
+\begin{equation}
+\Wk(\Lb)=\sum_{j=0}^{P}\theta^{(k)}_j\,\Lb^{\,j}.
+\label{eq:monomial}
+\end{equation}
+At the first layer, a MLP network with parameters $\psi$ is used to map the input feature space into the initial hidden representation $\bm H^{(0)}= \text{MLP}_\psi(\bm X)$.
+Then, every channel
+\begin{equation}
+\bm H_k=\Wk(\Lb)\,\bm H^{(0)},\qquad k=0,\dots,P,
+\label{eq:channels}
+\end{equation}
+is computed using the fixed coefficients in Eq.~\eqref{eq:monomial}.
+%The total computation is evaluated by at most $D$ sparse matrix-vector products
+%The powers $\Lb^{\,j}\bm H^{(0)}$ are shared across channels, so the whole bank costs $O(D\,|\mathcal E|\,d)$ per forward pass.
+
+Because $\eta$ is trained jointly with the filters, Eq.~\eqref{eq:weta} and Eq.~\eqref{eq:laplacian} are re-evaluated at every forward pass, which makes the filter bank a moving operator, and only at convergence is there one fixed $\Lb$ per dataset.
+A small update of $\eta$ would introduce stochasticity into the underlying operator.
+In order to improve the stability of the training process, we design an anchored gate in the later weighted aggregation $\bm H_k$ to produce the output latent representation.
+An additional KL loss is added to prevent the collapse issue when the signal is not informative at the start of the training phase.
+Specifically, the channel outputs are combined by a learnable simplex gate $\bm{g}=\mathrm{softmax}(\bm{a})$:
+\begin{equation}
+\bm{Z}=\big\Vert_{k=0}^{P}\sqrt{g_k}\,\bm{H}_k,
+\label{eq:gate}
+\end{equation}
+ where $\bm{a}$ is trainable.
+The classification output head $\text{MLP}_\omega$ is then used to map to the target label as:
+\begin{equation}
+\hat{\bm{y}}= \text{MLP}_\omega(\bm{Z}).
+\end{equation}
+Given the set of available labels $\bm{y}^L$ and the predicted output $\hat{\bm{y}}^L$, the whole module is  trained with
+\begin{equation}
+\mathcal{L}
+=\mathcal{L}_{\mathrm{BCE}}(\bm{y}^L,\hat{\bm{y}}^L)
++\alpha\, D_{\mathrm{KL}}\!\bigl(\bm{g}\,\Vert\,\bm{g}_0\bigr),
+\label{eq:loss}
+\end{equation}
+where $\bm{g}_0$ is the uniform prior and $\alpha$ is the weighting coefficient.
+The gate acts as an adaptive frequency response for readout procedure.
+The learned $\bm{g}$ decides which signed-spectral bands carry anomaly evidence on a given dataset, replacing the standard Beta-wavelet's fixed concatenation.
+By combining the gate with the KL loss, it stabilizes training under a moving operator.
+The pseudocode of ESO-GAD is presented in Algorithm~\ref{alg:ecsbwgnn}.
+
+The runtime complexity of ESO-GAD combines two phases.
+In the first phase, with $n=|\mathcal V|$, $m=|\mathcal E|$ and edge-descriptor dimension $d_e$, the training cost for each fold is approximately $O(m\,d_e)$, which is linear in the number of edges.
+In Phase~2, each forward pass rebuilds $\bm W^{(\eta)}$ and
+$\bm D^{(\eta)}$ from the frozen $\hat{\bm Q}$ in $O(m)$ time and shares the powers $\bm L_\eta^{\,j}\bm H^{(0)}$ across all $P{+}1$ channels via Eq.~\eqref{eq:monomial}.
+This results in a per-epoch cost of
+$O\bigl(P\,m\,d_h+P^{2}n\,d_h\bigr)$ with the hidden width $d_h$ of both $\psi$ and $\omega$.
+The cost matches the standard Beta-wavelet bank~\citep{BWGNN}.
+However, the main bottleneck of our ESO-GAD is the operator rebuild with $O(P\,m\,d_h)$ cost, which must be recomputed after each update of the calibration strength $\eta$.

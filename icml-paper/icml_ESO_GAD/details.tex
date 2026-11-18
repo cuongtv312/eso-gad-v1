@@ -1,0 +1,36 @@
+\section{Experiment Details}\label{app:details}
+
+The implementation details of ESO-GAD are summarized in Table~\ref{tab:hyperparameters}.
+In Phase 1, the edge calibrator, a two-layer MLP, is trained for 150 epochs using Adam with a learning rate of $10^{-2}$.
+In Phase 2, both the encoder $\psi$ and classifier $\omega$ use two-layer MLPs with hidden dimensions in $\{16,32,64\}$, while the Beta-wavelet order is selected from $\{2,3\}$ and the KL regularization weight $\alpha$ from $\{0.001,0.01,0.1\}$. Phase 2 is also optimized using Adam with a learning rate of $10^{-2}$.
+The number of training epochs in Phase 2 follows the GADBench setting.
+All of the experiments are tested on a single RTX 3090.
+
+\begin{table}[h]
+\centering
+\small
+\caption{Key hyperparameters of ESO-GAD.}
+\label{tab:hyperparameters}
+\begin{tabular}{@{}p{1.0cm}p{3.5cm}p{2.8cm}@{}}
+\hline
+Phase & Hyperparameters & Value \\
+\hline
+Phase 1
+        & Number of folds $K$  & $\{3,5,8\}$ \\
+        & Number of layers in $\phi$ & 2 \\
+        & Hidden dimension $d_e$ of $\phi$& $\{16,32,64\}$ \\
+        & Optimizer & Adam with $lr=10^{-2}$ \\
+        & Epochs & 150 \\
+\hline
+Phase 2 & Wavelet order $P$ & $\{2,3\}$ \\
+        & Number of layers in $\psi, \omega$ & 2 \\
+        & Hidden dimension $d_h$ of $\psi, \omega$& $\{16,32,64\}$ \\
+        & $\alpha$ & $\{0.001,0.01,0.1\}$ \\
+        & Optimizer & Adam with $lr=10^{-2}$ \\
+\hline
+\end{tabular}
+\vspace{2pt}
+\end{table}
+
+%% Uncomment if the appendices cite references.  Running BibTeX on supp.tex
+%% with no \cite commands present produces an empty bibliography.

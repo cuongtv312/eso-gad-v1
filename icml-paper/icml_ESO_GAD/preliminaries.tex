@@ -1,0 +1,54 @@
+\noindent \textbf{Graph Anomaly Detection.}
+Let $\mathcal{G}=(\mathcal{V},\mathcal{E},\boldsymbol{X})$ denote an 
+undirected attributed graph, where $\mathcal{V}$ is the set of $n$ nodes, 
+$\mathcal{E}$ is the set of edges, and  $e_{uv}=\{{u, v}\} \in  \mathcal{E}$ represents an unweighted edge between nodes $u$ and $v$ with $u, v \in \mathcal{V}$. 
+Each node $v$ has a $d$-dimensional feature vector $\vx_v\in\mathbb{R}^d$, and the set of all node features is $\boldsymbol{X}\in\mathbb{R}^{n\times d}$.
+Let $\boldsymbol{A}\in\mathbb{R}^{n\times n}$ be the adjacency matrix and
+$\boldsymbol{D}$ the corresponding diagonal degree matrix, where
+$D_{uu}=\sum_v A_{uv}$. The neighborhood of node $v$ is denoted by
+$\mathcal{N}_{v}$.
+
+We formulate the GAD task as a semi-supervised binary
+classification problem, where anomalous and normal nodes are assigned
+labels $1$ and $0$, respectively.
+For an edge $(u, v) \in \mathcal{E}$, we define the edge semantic as heterophily if $y_u \neq y_v$ and homophily if $y_u = y_v$.
+Let $\mathcal{V}^{L}=\mathcal{V}_{a}\cup\mathcal{V}_{n}$ denote the labeled
+node set, where $\mathcal{V}_{a}$ and $\mathcal{V}_{n}$ are the labeled
+anomalous and normal nodes, respectively, and let
+$\boldsymbol{y}^{L}$ denote their labels. The remaining nodes form the
+unlabeled set $\mathcal{V}^{U}=\mathcal{V}\setminus\mathcal{V}^{L}$.
+Given $\mathcal{G}$ and $\boldsymbol{y}^{L}$, the objective is to learn
+an anomaly scoring function that assigns each node
+$v_i\in\mathcal{V}^{U}$ an anomaly score $\hat{y}_i\in[0,1]$.
+\begin{equation}
+    f(\mathcal{G}, \boldsymbol{y}^{L}) \rightarrow \hat{\boldsymbol{y}}^{U}
+\end{equation}
+% Graph, labels, semi-supervised GAD objective
+
+\noindent \textbf{Graph Spectral Filtering.}
+Given a graph with adjacency matrix $\boldsymbol{A}$ and degree matrix
+$\boldsymbol{D}$,
+let $\tilde{\bm A} \;=\; \bm A + \bm I$ is the adjacency matrix with self-loop.
+Its combinatorial Laplacian is defined as
+$\boldsymbol{L}=\boldsymbol{D}-\boldsymbol{A}$, while the symmetric normalized Laplacian is $\tilde{\boldsymbol{L}} =\boldsymbol{I}-\boldsymbol{D}^{-1/2}\boldsymbol{A}\boldsymbol{D}^{-1/2}$, where $\boldsymbol{I}$ is the identity matrix.
+For an undirected graph, $\tilde{\boldsymbol{L}}$ admits the eigendecomposition
+$\tilde{\boldsymbol{L}} =\boldsymbol{U}\boldsymbol{\Lambda}\boldsymbol{U}^{\top}$, where $\boldsymbol{U}\in\mathbb{R}^{n\times n}$ consists of orthonormal
+eigenvectors that form the graph Fourier basis, and
+$\boldsymbol{\Lambda}
+=\operatorname{diag}(\lambda_1,\ldots,\lambda_n)$
+contains the corresponding graph frequencies, with
+$0=\lambda_1\leq\cdots\leq\lambda_n\leq 2$.
+Given an input graph signal $\boldsymbol{X}$, a spectral filter $g(\cdot)$ operates on each frequency component through:
+\begin{equation}
+\boldsymbol{\hat X}
+=
+\boldsymbol{U}g(\boldsymbol{\Lambda})
+\boldsymbol{U}^{\top}\boldsymbol{X}.    
+\end{equation}
+Direct spectral filtering, however, requires eigendecomposition of the graph Laplacian, which incurs cubic complexity in the number of nodes.
+To avoid this computational cost, recent spectral GNNs \citep{BernNet, ChebNet2} parameterize or approximate the spectral response using a finite-order polynomial of the Laplacian.
+%Such polynomial filters can represent flexible frequency responses while enabling efficient computation through localized matrix-vector operations.
+
+% \subsection{Signed Graph Laplacian}
+% signed adjacency, absolute degree,
+% normalized signed Laplacian and quadratic form

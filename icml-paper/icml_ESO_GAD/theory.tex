@@ -1,0 +1,341 @@
+% Section "Theoretical Analysis". All proofs are in proof.tex (Appendix A).
+% Each statement has a numerical check in src/theory_check.py; keep the two in sync.
+The construction of Section~\ref{sec:method} raises three questions that an empirical comparison alone cannot settle: why a signed operator should separate anomalies better than an unsigned one, why the estimated edge semantics should enter as signs rather than through pruning or reweighting, and how far the errors of a frozen calibrator can propagate.
+This section answers them in turn.
+Section~\ref{sec:theory-spectral} locates the label signal in the spectrum of $\Lb$.
+Section~\ref{sec:theory-node} analyzes separability at node level and derives the optimal edge weights.
+Section~\ref{sec:theory-supervision} characterizes what the weak edge supervision of Phase~1 identifies.
+Section~\ref{sec:theory-stability} bounds the effect of calibration errors on the operator and on the representation.
+All proofs are deferred to Appendix~\ref{app:proofs}.
+
+\paragraph{Notation.}
+For the analysis we write the labels in signed form, $\bar y_u=2y_u-1\in\{-1,+1\}$, with $\ys$ the signed label vector and $\Ys=\operatorname{diag}(\ys)$.
+The true heterophily indicator of an edge is $\tstar_{uv}=\mathds{1}[y_u\neq y_v]$, collected in $\bm t^\star$, and its true sign is $\sstar_{uv}=\bar y_u\bar y_v=1-2\tstar_{uv}$, with $\sstar_{uu}=1$.
+A \emph{score vector} $q\in[0,1]^{|\mathcal E|}$ is any symmetric assignment of scores to the edges with $q_{uu}=0$.
+We write $\bm L_\eta(q)$ for the Laplacian of Eq.~\eqref{eq:laplacian} built from $q$ and $\eta$, $W_{uv}$ and $D_{uu}$ for the entries of the corresponding $\Wb$ and $\Db$, and $\sigma_{uv}=\sgn(W_{uv})$.
+Sums over $(u,v)$ run over ordered pairs with $\tilde A_{uv}=1$, self-loops included, and $\tilde d_u=\sum_v\tilde A_{uv}$.
+The local heterophily of a node is $\tilde h_u=\tilde d_u^{-1}\sum_v\tilde A_{uv}\tstar_{uv}$, and $\tilde h_a$, $\tilde h_n$ are its averages over anomalous and normal nodes.
+Finally,
+\begin{equation}
+\kappa_k=\frac{1}{2\,\mathrm B(k{+}1,\,P{-}k{+}1)}=\frac{P{+}1}{2}\binom{P}{k}
+\label{eq:kappa}
+\end{equation}
+denotes the prefactor of the $k$-th Beta kernel in Eq.~\eqref{eq:betakernel}.
+Unless stated otherwise, the results hold for every $\eta\ge0$, which includes the range $[0,1]$ used by ESO-GAD.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Why Signing Helps: Balance and Label Frequency}\label{sec:theory-spectral}
+
+We first ask what the operator does when the edge semantics are known exactly.
+
+\begin{theorem}[Oracle signs are a change of gauge]\label{thm:gauge}
+Let $q=\bm t^\star$ and $\eta\in[\tfrac12,1]$. Then:
+
+\smallskip\noindent\textbf{(i)} $\bm L_\eta(\bm t^\star)=\Ys\,\bm L_{1-\eta}(\bm t^\star)\,\Ys$, where all edge weights of $\bm L_{1-\eta}(\bm t^\star)$ are non-negative and $\bm L_{0}$ is the unsigned operator of BWGNN.
+
+\smallskip\noindent\textbf{(ii)} $\bm L_\eta(\bm t^\star)$ and $\bm L_{1-\eta}(\bm t^\star)$ have the same spectrum, and $g(\bm L_\eta(\bm t^\star))=\Ys\,g(\bm L_{1-\eta}(\bm t^\star))\,\Ys$ for every polynomial $g$, in particular for every Beta kernel $\Wk$.
+
+\smallskip\noindent\textbf{(iii)} $\bm L_\eta(\bm t^\star)\,\Db{}^{1/2}\ys=\bm 0$.
+\end{theorem}
+
+Filtering with the oracle signed operator is therefore the same as flipping the features of one class, filtering on a graph in which every edge is homophilic, and flipping back.
+Signing leaves the spectrum untouched and moves the label signal to frequency zero.
+Pruning also reaches frequency zero, but on a smaller graph; Section~\ref{sec:theory-node} quantifies the difference.
+Theorem~\ref{thm:gauge} specializes structural balance~\citep{Harary1953} and switching equivalence~\citep{Zaslavsky1982,KunegisSigned} to the $\eta$-family of Eq.~\eqref{eq:weta}.
+It relies on the fact that, for two classes, the product of the true signs along any walk from $u$ to $v$ equals $\bar y_u\bar y_v$.
+With three or more classes the label-induced signs are in general not balanced, and signed message passing is known to update multi-hop neighbors undesirably in that case~\citep{SignNotRemedy}.
+Binary anomaly detection is the setting in which this issue cannot arise under correct signs.
+
+For an arbitrary calibrator, the relevant quantity is how much edge weight carries the wrong sign.
+We define the \emph{frustration} of the signed graph with respect to the labels and the frequency of the \emph{label signal} $\yt=\Db{}^{1/2}\ys$ as
+\begin{align}
+\Fr_\eta(q)&=\frac{\sum_{u,v}|W_{uv}|\,\mathds{1}[\sigma_{uv}\neq\sstar_{uv}]}{\sum_{u,v}|W_{uv}|},\label{eq:frustration}\\
+\rho_\eta(q)&=\frac{\yt^{\top}\bm L_\eta(q)\,\yt}{\yt^{\top}\yt}.\label{eq:labelfreq}
+\end{align}
+
+\begin{theorem}[Label frequency equals frustration]\label{thm:freq}
+For every graph, every labeling, every score vector $q$ and every $\eta\ge0$,
+\[
+\rho_\eta(q)=2\,\Fr_\eta(q).
+\]
+\end{theorem}
+
+Theorem~\ref{thm:freq} ties the quality of the calibrator directly to the spectrum: signing lowers the frequency of the label signal exactly as far as the signs are right.
+Bounds between the least eigenvalue of a signed Laplacian and its frustration are classical~\citep{Belardo2014,AtayLiu2020}; the identity above concerns the label partition and holds for every calibration strength.
+
+\begin{corollary}[Unsigned and reweighting regimes]\label{cor:lift}
+Let $H$ be the number of heterophilic ordered edges, $M$ the number of all ordered edges including self-loops, and $S_{\mathrm{het}}$, $S_{\mathrm{all}}$ the sums of $q_{uv}$ over these two sets.
+For $\eta\in[0,\tfrac12]$,
+\[
+\Fr_\eta(q)=\frac{H-2\eta S_{\mathrm{het}}}{M-2\eta S_{\mathrm{all}}}.
+\]
+In particular, $\rho_0=2H/M$ is twice the edge heterophily ratio, and $\Fr_\eta(q)$ is strictly decreasing in $\eta$ on $[0,\tfrac12]$ if and only if $S_{\mathrm{het}}/H>S_{\mathrm{all}}/M$.
+\end{corollary}
+
+At $\eta=0$ the frequency of the label signal is the edge heterophily ratio, which recovers in one line the link between heterophily and high-frequency energy behind the right-shift of BWGNN~\citep{BWGNN} and behind GHRN~\citep{GHRN}.
+The second statement says that every calibrator with positive lift, i.e., whose mean score on heterophilic edges exceeds its mean score on all edges, lowers the label frequency throughout the reweighting regime.
+For $\eta>\tfrac12$ edges start to flip, and
+\[
+\Fr_\eta(q)=\frac{\sum_{\mathrm{het}}(1-2\eta q_{uv})_+ +\sum_{\mathrm{hom}}(2\eta q_{uv}-1)_+}{\sum_{\mathrm{all}}|1-2\eta q_{uv}|},
+\]
+which rewards correct flips and charges wrong ones.
+
+\begin{corollary}[Label energy across channels]\label{cor:energy}
+Let $E_k=\|\Wk(\bm L_\eta(q))\,\yt\|_2^2/(\kappa_k^2\|\yt\|_2^2)$ be the share of label energy passed by channel $k$. Then
+\begin{align*}
+\bigl(1-\Fr_\eta(q)\bigr)^{2P}&\le E_0\le 1-\Fr_\eta(q),\\
+\Fr_\eta(q)^{2P}&\le E_P\le\Fr_\eta(q).
+\end{align*}
+\end{corollary}
+
+The signed operator thus moves label energy from the high-pass channel to the low-pass channel in proportion to the frustration it removes.
+Under oracle signs, $E_0=1$ and $E_k=0$ for $k\ge1$.
+This is the precise sense in which signing reallocates frequency, and it gives the gate of Eq.~\eqref{eq:gate} a concrete role: the better the calibration, the more label energy sits in the low channels.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Sign, Reweight, or Prune: Node-Level Separability}\label{sec:theory-node}
+
+The spectral view does not distinguish signing from pruning, since both can remove frustration.
+The difference appears at node level, where the question is how much evidence about its own class a node receives from its neighbors.
+
+\begin{assumption}[Class-centred features]\label{ass:features}
+$\bm H^{(0)}=\ys\bm\mu^{\top}+\bm\Xi$, where $\bm\mu\in\mathbb R^{d_h}$ and the rows of $\bm\Xi$ are i.i.d.\ $\mathcal N(\bm 0,\sigma^2\bm I)$ and independent of the graph and of the scores.
+\end{assumption}
+
+This is the feature model of contextual stochastic block models~\citep{CSBM,GCTheory}, imposed on the encoder output and conditional on an arbitrary graph.
+For a node $u$ we define the \emph{margin} and the \emph{effective degree}
+\begin{equation}
+\mar_u=\frac{\sum_vW_{uv}\,\sstar_{uv}}{\sum_v|W_{uv}|},\qquad
+\deff_u=\frac{\bigl(\sum_v|W_{uv}|\bigr)^2}{\sum_vW_{uv}^2}.
+\label{eq:margin}
+\end{equation}
+The margin is the correctly signed minus the wrongly signed share of the edge weight of $u$, and $\deff_u\in[1,\tilde d_u]$ counts how many neighbors effectively contribute.
+
+\begin{theorem}[Node-level separability]\label{thm:snr}
+Let Assumption~\ref{ass:features} hold, let $\bm G\in\mathbb R^{n\times n}$ depend on $(\tilde{\bm A},q,\eta)$ only, and let $\bm Z=\bm G\bm H^{(0)}$ with rows $\bm z_u$.
+
+\smallskip\noindent\textbf{(a)} The readout $\sgn\langle\bm z_u,\bm\mu\rangle$ misclassifies node $u$ with probability $\Gt\bigl(\snr_u(\bm G)\,\|\bm\mu\|/\sigma\bigr)$, where $\Gt$ is the standard Gaussian tail function and
+\[
+\snr_u(\bm G)=\frac{\bar y_u\,[\bm G\ys]_u}{\|\bm G_{u\cdot}\|_2}.
+\]
+For one propagation step, $\bm G=\Db{}^{-1}\Wb$, we have $\snr_u(\bm G)=\mar_u\sqrt{\deff_u}$.
+
+\smallskip\noindent\textbf{(b)} For one step with oracle edge information, $\snr_u$ equals $(1-2\tilde h_u)\sqrt{\tilde d_u}$ for the unsigned operator, $\sqrt{(1-\tilde h_u)\,\tilde d_u}$ for pruning ($W_{uv}=\tilde A_{uv}(1-\tstar_{uv})$), and $\sqrt{\tilde d_u}$ for signing ($W_{uv}=\tilde A_{uv}(1-2\tstar_{uv})$).
+
+\smallskip\noindent\textbf{(c)} Let $g$ be a polynomial with non-negative coefficients, $\bm G_0=g(\bm I-\bm L_0)$ and $\bm G_s=g(\bm I-\bm L_1(\bm t^\star))$. Then for every node $u$,
+\[
+\snr_u(\bm G_s)=\frac{\|\bm G_{0,u\cdot}\|_1}{\|\bm G_{0,u\cdot}\|_2}\;\ge\;|\snr_u(\bm G_0)|,
+\]
+with strict inequality if and only if the support of row $u$ of $\bm G_0$ contains both classes.
+
+\smallskip\noindent\textbf{(d)} For $\bm G=\Db{}^{-1}\Wb$,
+\[
+\frac{d\snr_u}{d\eta}\Big|_{\eta=0}
+=4\sqrt{\tilde d_u}\;\tilde h_u(1-\tilde h_u)\bigl(\bar q^{\mathrm{het}}_u-\bar q^{\mathrm{hom}}_u\bigr),
+\]
+where $\bar q^{\mathrm{het}}_u$ and $\bar q^{\mathrm{hom}}_u$ are the mean scores on the heterophilic and homophilic edges of $u$, the self-loop counting as homophilic with score $0$.
+\end{theorem}
+
+Part~(b) separates the three ways of using edge semantics.
+Signing and pruning both place a node on the side of its own class, but pruning discards the heterophilic neighbors while signing keeps them as evidence, so $\snr^{\mathrm{sign}}_u/\snr^{\mathrm{prune}}_u=(1-\tilde h_u)^{-1/2}$, which is largest for camouflaged anomalies.
+The unsigned operator places every node with $\tilde h_u>\tfrac12$ on the wrong side.
+Averaging $[\bm G\ys]_u=\mar_u\bar y_u$ over each class shows that one unsigned step separates the class means by $2\,|1-\tilde h_a-\tilde h_n|\,\|\bm\mu\|$, against $2\|\bm\mu\|$ for oracle signing.
+In the camouflage regime, where anomalies are mostly linked to normal nodes ($\tilde h_a$ close to $1$, $\tilde h_n$ close to $0$), the two class means collapse onto each other.
+An unsigned high-pass filter does keep every node on its own side, since $\bar y_u[(\bm I-\tilde{\bm D}^{-1}\tilde{\bm A})\ys]_u=2\tilde h_u$ with $\tilde{\bm D}$ the degree matrix of $\tilde{\bm A}$, but it does not average the noise, since the corresponding row has squared norm $1-1/\tilde d_u$, so $\snr_u\approx2\tilde h_u\le2$.
+The signed low-pass channel reaches $\sqrt{\tilde d_u}$.
+Unsigned spectral detectors can therefore see the anomaly signal in the high frequencies but cannot denoise it, whereas signing turns heterophilic neighbors into denoising evidence.
+Part~(c) extends the comparison beyond one step: the low-pass Beta kernel $\mathcal W_0\propto(\bm I-\Lb/2)^P$ has the required form, and under oracle signs it dominates its unsigned counterpart at every node.
+Part~(d) shows that any calibrator that ranks the heterophilic edges of a node above its homophilic ones improves that node at first order, independently of the base rate of heterophily.
+
+\begin{remark}[Scope]\label{rem:scope}
+Parts (b) and (d) concern one propagation step and part (c) concerns non-negative filters with a linear readout.
+A multi-channel unsigned bank followed by an MLP can combine low-pass and high-pass channels non-linearly, so Theorem~\ref{thm:snr} does not state that an unsigned bank cannot separate the classes.
+It states what a single signed low-pass channel achieves that no unsigned channel does.
+\end{remark}
+
+\begin{remark}[Two pathways]\label{rem:pathways}
+If the encoder output carries a class-independent offset, $\bm H^{(0)}=\bm 1\bm\mu_0^{\top}+\ys\bm\mu^{\top}+\bm\Xi$, one step maps the offset of node $u$ to $\nu_u\bm\mu_0$ with $\nu_u=\sum_vW_{uv}/\sum_v|W_{uv}|$.
+For the unsigned operator $\nu_u\equiv1$.
+For the signed operator $\nu_u$ summarizes how much of the neighborhood of $u$ is flagged as heterophilic, which is itself informative about the class.
+The signed operator thus acts through a \emph{contrast} pathway, analyzed in Theorem~\ref{thm:snr}, and a \emph{bias} pathway that injects a neighborhood summary of the edge scores.
+\end{remark}
+
+We now ask which edge weights are best when the edge semantics are uncertain.
+
+\begin{assumption}[Reliability of the scores]\label{ass:reliability}
+Conditionally on the scores, the relative signs $\bar y_u\bar y_v$ of the neighbors $v\neq u$ of a node $u$ are independent, and $\Pr[y_u\neq y_v\mid q]=p(q_{uv})$ for a function $p:[0,1]\to[0,1]$, the \emph{reliability curve} of the calibrator.
+\end{assumption}
+
+The calibrator is calibrated when $p(q)=q$.
+
+\begin{theorem}[Optimal edge weights]\label{thm:optimal}
+Let Assumption~\ref{ass:reliability} hold, and let Assumption~\ref{ass:features} hold with arbitrary independent noise of zero mean and covariance $\sigma^2\bm I$.
+Fix a node $u$ and aggregate $\bm z_u=\sum_v\vartheta_v\bm h^{(0)}_v$ over its neighbors in $\tilde{\bm A}$ with weights $\vartheta_v$ that depend on the scores only.
+Let $c_v=1-2p(q_{uv})$ for $v\neq u$, $c_u=1$, and $\varsigma_v^2=\sigma^2+\|\bm\mu\|^2(1-c_v^2)$.
+With $\hat{\bm\mu}=\bm\mu/\|\bm\mu\|$ and moments taken conditionally on $y_u$ and the scores, the deflection
+\[
+\mathcal J(\bm\vartheta)
+=\frac{\mathbb E\bigl[\bar y_u\langle\bm z_u,\hat{\bm\mu}\rangle\bigr]}{\operatorname{sd}\bigl[\langle\bm z_u,\hat{\bm\mu}\rangle\bigr]}
+\]
+equals $\|\bm\mu\|\sum_v\vartheta_vc_v\big/\bigl(\sum_v\vartheta_v^2\varsigma_v^2\bigr)^{1/2}$, and:
+
+\smallskip\noindent\textbf{(i)} $\mathcal J(\bm\vartheta)\le\mathcal J^\star=\|\bm\mu\|\bigl(\sum_vc_v^2/\varsigma_v^2\bigr)^{1/2}$, with equality if and only if $\vartheta_v\propto c_v/\varsigma_v^2$.
+
+\smallskip\noindent\textbf{(ii)} Over non-negative weights, $\mathcal J(\bm\vartheta)\le\mathcal J^\star_+=\|\bm\mu\|\bigl(\sum_v(c_v)_+^2/\varsigma_v^2\bigr)^{1/2}$, with equality if and only if $\vartheta_v\propto(c_v)_+/\varsigma_v^2$.
+
+\smallskip\noindent\textbf{(iii)} $(\mathcal J^\star)^2-(\mathcal J^\star_+)^2=\|\bm\mu\|^2\sum_{v:\,p(q_{uv})>1/2}c_v^2/\varsigma_v^2$.
+
+\smallskip\noindent\textbf{(iv)} If $\mathcal J(\bm\vartheta)>0$, the readout $\sgn\langle\bm z_u,\bm\mu\rangle$ errs with probability at most $1/(1+\mathcal J(\bm\vartheta)^2)$.
+\end{theorem}
+
+The optimal weight is an odd, increasing function of the soft sign $c_v=1-2p(q_{uv})$.
+In the regime where aggregation matters most, $\|\bm\mu\|\ll\sigma$, it is exactly proportional to $1-2p(q_{uv})$, and for confident edges, $|c_v|\to1$, it equals $c_v$ at every signal level.
+The unsigned operator ($\vartheta_v\equiv1$), reweighting ($\vartheta_v=1-q_{uv}$) and pruning ($\vartheta_v=\mathds{1}[q_{uv}<\tau]$) use non-negative weights, so they are bounded by $\mathcal J^\star_+$.
+By part~(iii), what they lose is exactly the information carried by the edges that are more likely heterophilic than not.
+For a fully camouflaged node, $(\mathcal J^\star_+)^2$ retains only the self term, while $(\mathcal J^\star)^2$ grows with the degree.
+Theorem~\ref{thm:optimal} also explains why calibration matters beyond ranking quality: the weight that enters is the true posterior, so a miscalibrated score yields suboptimal weights even when its ordering of the edges is perfect.
+
+\begin{corollary}[The calibration strength is a recalibration slope]\label{cor:slope}
+Suppose the frozen scores have a linear reliability curve, $p(q)=\eta_0\,q$ with $0\le\eta_0\le1/\max_{u,v}\hat q_{uv}$.
+As $\|\bm\mu\|/\sigma\to0$, the optimal weights of Theorem~\ref{thm:optimal} at every node $u$ converge, up to a positive factor, to $\vartheta_v=1-2\eta_0\hat q_{uv}$, i.e., to the row of $\bm W^{(\eta_0)}$.
+\end{corollary}
+
+Although the calibrator is frozen after Phase~1, $\eta$ is therefore more than a damping factor.
+It is the one-parameter recalibration under which the family of Eq.~\eqref{eq:Wentry} contains the optimal aggregator.
+A slope $\eta_0<1$ means that the scores over-predict heterophily, which is the expected case when the labeled set over-represents anomalies or when the edge loss is class-weighted.
+A single scalar repairs a linear miscalibration only; scores that are non-monotone in the true posterior, or wrong on a specific type of edge, are beyond its reach.
+Proposition~\ref{prop:valid} holds for every $\eta\ge0$, so the theory does not require the slope to stay below one.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{What Weak Edge Supervision Identifies}\label{sec:theory-supervision}
+
+Theorem~\ref{thm:optimal} calls for the posterior heterophily probability of Eq.~\eqref{eq:quv}, which we write $q^\star(\bm z)=\Pr[y_u\neq y_v\mid\vz_{uv}=\bm z]$.
+With few labels, most of the supervision comes from the singly-labeled edges $\mathcal E_1$, whose targets in Eq.~\eqref{eq:edge-target} impute the unlabeled endpoint as normal.
+Let $P_{aa}(\bm z)$ and $P_{nn}(\bm z)$ be the probabilities that both endpoints of an edge with descriptor $\bm z$ are anomalous, respectively normal, so that $P_{aa}+P_{nn}+q^\star=1$.
+
+\begin{assumption}[Label sampling]\label{ass:sampling}
+Whether a node is labeled depends on its class only: anomalies are labeled with probability $r_1$ and normal nodes with probability $r_0$, independently of each other, of the graph and of the features.
+\end{assumption}
+
+\begin{proposition}[Target of singly-labeled edges]\label{prop:e1}
+Under Assumption~\ref{ass:sampling}, for an edge of $\mathcal E_1$ with descriptor $\bm z$ and target $t_{uv}$ from Eq.~\eqref{eq:edge-target},
+\[
+\frac{\Pr[t_{uv}=1\mid\bm z]}{\Pr[t_{uv}=0\mid\bm z]}
+=\frac{r_1\bigl[2(1-r_1)P_{aa}+(1-r_0)\,q^\star\bigr]}{r_0\bigl[2(1-r_0)P_{nn}+(1-r_1)\,q^\star\bigr]},
+\]
+with $P_{aa}$, $P_{nn}$, $q^\star$ evaluated at $\bm z$.
+In particular, if $r_1=r_0$ then $\mathbb E[t_{uv}\mid\bm z]=\iota(\bm z):=\tfrac12q^\star(\bm z)+P_{aa}(\bm z)$, and in general the odds equal $\tfrac{r_1}{r_0}\cdot\tfrac{\iota(\bm z)}{1-\iota(\bm z)}$ up to a factor in $[1-r,\,(1-r)^{-1}]$ with $r=\max(r_0,r_1)$.
+\end{proposition}
+
+The singly-labeled target therefore ranks edges by $\iota(\bm z)$, the probability that the edge \emph{touches an anomaly}, and not by heterophily: an edge between two anomalies is homophilic but attains the largest $\iota$.
+When anomalies are rare and camouflaged, $P_{aa}\approx0$ and $\iota\approx q^\star/2$, a rescaled heterophily probability whose scale the calibration strength absorbs (Corollary~\ref{cor:slope}).
+The modal imputation of Eq.~\eqref{eq:edge-target} is thus exact under pure camouflage and biased where anomalies link to each other.
+
+\begin{corollary}[When the imputation helps]\label{cor:camouflage}
+Consider the idealized operator that the target of Proposition~\ref{prop:e1} induces at $\eta=1$, in which exactly the edges incident to an anomaly are negative.
+Its margin is $\mar_u=1$ for every normal node and $\mar_u=2\tilde h_u-1+2/\tilde d_u$ for every anomaly, against $1-2\tilde h_u$ for the unsigned operator.
+Hence it improves the margin of an anomaly $u$ if and only if $\tilde h_u>\tfrac12-\tfrac{1}{2\tilde d_u}$.
+\end{corollary}
+
+Corollary~\ref{cor:camouflage} makes the camouflage assumption behind Eq.~\eqref{eq:edge-target} checkable on any dataset through the local heterophily of its anomalies.
+Restricting the supervision to $\mathcal E_2$ is not an alternative under the label budget of GADBench: with $100$ labeled nodes, the expected number of doubly-labeled edges is $|\mathcal E|\cdot\tfrac{100\cdot99}{n(n-1)}$, which ranges from about $300$ on Amazon to fewer than one on Questions (Table~\ref{tab:e2size} in Appendix~\ref{app:proofs}).
+The bias of the modal imputation disappears when the unlabeled endpoint is instead imputed in expectation, $t_{uv}=y_u(1-\hat p_v)+(1-y_u)\hat p_v$ with $\hat p_v$ a calibrated anomaly probability of the unlabeled endpoint $v$; Eq.~\eqref{eq:edge-target} is the special case $\hat p_v\equiv0$.
+
+The second property of Phase~1 that the analysis relies on is that the scores of a node's edges are produced without that node's label.
+
+\begin{proposition}[Label-free scores under node-grouped cross-fitting]\label{prop:crossfit}
+Let the labeled nodes be partitioned into folds $\mathcal F_1,\dots,\mathcal F_K$, let model $\phi^{(j)}$ be trained on the edges none of whose labeled endpoints lies in $\mathcal F_j$, and let an edge be scored by the average of the models $\phi^{(j)}$ whose fold $\mathcal F_j$ contains one of its endpoints, or by all $K$ models if neither endpoint is labeled.
+For a labeled node $u\in\mathcal F_a$ and a neighbor $v$:
+
+\smallskip\noindent\textbf{(i)} If $v$ is unlabeled or $v\in\mathcal F_a$, then $\hat q_{uv}$ is a function of the graph, the features and the labels outside $\mathcal F_a$. In particular it does not depend on $y_u$.
+
+\smallskip\noindent\textbf{(ii)} If $v\in\mathcal F_b$ with $b\neq a$, then $\hat q_{uv}$ averages $\phi^{(a)}$ and $\phi^{(b)}$, and $\phi^{(b)}$ is trained with $y_u$.
+
+\smallskip\noindent If cross-fold pairs are instead scored by a model trained without $\mathcal F_a\cup\mathcal F_b$, then no score of an edge incident to $u$ depends on $y_u$.
+\end{proposition}
+
+Under the label budget of GADBench, the edges of case~(ii) make up a fraction of about $|\mathcal V_L|/n$, below one percent, of the edges of a labeled node, so the scores that enter the node loss are out-of-sample up to that fraction.
+This matters for the calibration strength.
+By Corollary~\ref{cor:slope}, $\eta$ estimates the reliability slope of the scores, and it is fitted on the labeled nodes.
+In-sample scores would be sharper on the labeled nodes than on the test nodes and would bias this estimate, which is the role sample splitting plays in double machine learning~\citep{DML}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Robustness to Calibration Error}\label{sec:theory-stability}
+
+There are two sources of error in training ESO-GAD.
+The scores of Phase~1 are estimates, so their errors enter $\Lb$.
+Moreover, because $\eta$ is updated at every step, $\Lb$ is a \emph{moving} operator, and training is stable only if the operator is Lipschitz in the quantities that move.
+We measure the discrepancy between two score vectors $q$ and $q'$ locally, through the mean absolute and mean squared errors on the edges of each node,
+\begin{align}
+\bar e_u&=\frac{1}{\tilde d_u}\sum_v\tilde A_{uv}\,|q_{uv}-q'_{uv}|,&\eloc(q,q')&=\max_u\bar e_u,\notag\\
+b_u&=\frac{1}{\tilde d_u}\sum_v\tilde A_{uv}\,(q_{uv}-q'_{uv})^2,&\mathcal B(q,q')&=\sum_ub_u,
+\label{eq:localerrors}
+\end{align}
+and we let $\gamma=\min_uD^{(\eta)}_{uu}(q)/\tilde d_u\in(0,1]$ be the smallest share of a node's edge mass that survives calibration.
+
+\begin{theorem}[Degree-free stability of the operator]\label{thm:stab}
+Let $\bm L=\bm L_\eta(q)$ and $\bm L'=\bm L_{\eta'}(q')$ with weights $W_{uv}$, $W'_{uv}$, and let
+\[
+\delta=\max_u\frac{\sum_v|W_{uv}-W'_{uv}|}{D_{uu}}.
+\]
+Then
+\begin{equation}
+\bigl\|\bm L-\bm L'\bigr\|_2\;\le\;3\delta+\delta^2,
+\label{eq:stabjoint}
+\end{equation}
+and
+\[
+\delta\;\le\;\frac{2}{\gamma}\Bigl(\eta\,\eloc(q,q')+|\eta-\eta'|\,\bar q'_{\max}\Bigr),
+\]
+where $\bar q'_{\max}=\max_u\tilde d_u^{-1}\sum_v\tilde A_{uv}q'_{uv}\le1$.
+\end{theorem}
+
+Three features of Theorem~\ref{thm:stab} are worth noting.
+First, the bound has no degree dependence.
+A direct perturbation argument in terms of $\|q-q'\|_\infty$ yields the constant $2\dmax(1+\dmax)$, which is vacuous on real graphs because $\|\bm L-\bm L'\|_2\le2$ always holds by Proposition~\ref{prop:valid}.
+Second, the calibration error enters through the mean error of the worst node rather than through the worst edge.
+Third, the price is $\gamma$, which equals $1$ at $\eta=0$ and for oracle scores at $\eta=1$, satisfies $\gamma\ge1-2\eta\max_{u,v}q_{uv}$ for $\eta<\tfrac12$, and is at least $1/\max_u\tilde d_u$ in the worst case.
+Since the scores are frozen after Phase~1, Theorem~\ref{thm:stab} with $q=q'$ also shows that the operator moves at most linearly, to first order, in the step taken in $\eta$, so no single update can reconfigure the spectrum discontinuously.
+
+\begin{theorem}[The Brier score controls the operator]\label{thm:brier}
+For a common $\eta$ and with $\delta$ as in Theorem~\ref{thm:stab},
+\[
+\bigl\|\bm L_\eta(q)-\bm L_\eta(q')\bigr\|_F\le\frac{2\eta}{\gamma}\Bigl(1+\sqrt2\,(2+\delta)\Bigr)\sqrt{\mathcal B(q,q')}.
+\]
+\end{theorem}
+
+Dividing by $n$, the mean squared row perturbation of the operator is at most a constant times $\eta^2\gamma^{-2}$ times the node-averaged local Brier score.
+With $q'=\bm t^\star$, this is the Brier score of the calibrator against the true edge semantics.
+The Brier term of Eq.~\eqref{eq:LossEC} is therefore more than a calibration heuristic: it upper-bounds the distance between the calibrated operator and the oracle operator of Theorem~\ref{thm:gauge}.
+
+The calibration error continues to propagate from $\bm H^{(0)}$ to $\bm Z$, at a rate controlled by the channel of largest spectral gain.
+
+\begin{theorem}[Robustness of the representation]\label{thm:repr}
+Fix $\eta\ge0$ and let $\bm Z(q)=\big\Vert_{k=0}^{P}\sqrt{g_k}\,\Wk\bigl(\bm L_\eta(q)\bigr)\bm H^{(0)}$ be the representation induced by a score vector $q$, as in Eq.~\eqref{eq:gate}.
+With $\Lambda_k=\tfrac12P\,\kappa_k$, for all score vectors $q,q'$ and every gate $\bm g$ on the simplex,
+\begin{equation}
+\begin{aligned}
+\bigl\|\bm Z(q)-\bm Z(q')\bigr\|_F
+\;\le\;&\Bigl(\max_{0\le k\le P}\Lambda_k\Bigr)\bigl(3\delta+\delta^2\bigr)\\
+&\times\bigl\|\bm H^{(0)}\bigr\|_F,
+\end{aligned}
+\label{eq:stabZ}
+\end{equation}
+where $\delta\le2\eta\,\eloc(q,q')/\gamma$ is the quantity of Theorem~\ref{thm:stab} at $\eta'=\eta$.
+\end{theorem}
+
+\noindent Eq.~\eqref{eq:stabZ} holds uniformly over the simplex.
+The square-root weighting in Eq.~\eqref{eq:gate} yields $\|\bm Z\|_F^2=\sum_k g_k\|\bm H_k\|_F^2$, a convex combination of the band energies.
+As a result, the gate reallocates energy across bands without rescaling the representation.
+Linear weighting would instead give $\sum_k g_k^2\|\bm H_k\|_F^2$, making the Lipschitz constant scale with $\|\bm g\|_2$ and letting the gate enter a bound that should depend only on the operator and the graph structure.
+In Frobenius norm each kernel is Lipschitz with constant $\sup_{\lambda\in[0,2]}|\mathcal W_k'(\lambda)|$ (Lemma~\ref{lem:frob} in Appendix~\ref{app:proofs}), so Theorem~\ref{thm:brier} transfers to the kernels as well.
+
+Combining Theorem~\ref{thm:gauge} with Theorem~\ref{thm:stab} gives an end-to-end statement: the calibrated operator inherits the separability of the oracle operator up to a term controlled by the local calibration error.
+
+\begin{corollary}[Misaligned nodes]\label{cor:misaligned}
+Let $\eta\in(\tfrac12,1]$, let $\bm L^\star=\bm L_\eta(\bm t^\star)$ be the oracle operator with degrees $D^\star_{uu}$ and label signal $\yt^\star=(\bm D^\star)^{1/2}\ys$, and let $\hat{\bm L}=\bm L_\eta(\hat q)$.
+The $D^\star$-weighted fraction of nodes $u$ at which the low-pass label response $[\mathcal W_0(\hat{\bm L})\,\yt^\star]_u$ does not have the sign of $\bar y_u$ is at most $\bigl(\tfrac P2(3\delta+\delta^2)\bigr)^2$, where $\delta\le2\eta\,\eloc(\hat q,\bm t^\star)/\gamma^\star$ and $\gamma^\star=1-2(1-\eta)\max_u\tilde h_u\ge2\eta-1$.
+\end{corollary}
+
+Corollary~\ref{cor:misaligned} is a worst-case guarantee and is informative only for small local errors.
+The exact identities of Theorems~\ref{thm:freq} and~\ref{thm:snr} are the quantities to evaluate on data.

@@ -1,0 +1,388 @@
+\section{Proofs}\label{app:proofs}
+\allowdisplaybreaks
+We use the notation of Section~\ref{sec:theory}.
+For a fixed pair $(q,\eta)$ we abbreviate $w_{uv}=W^{(\eta)}_{uv}$, $\sigma_{uv}=\sgn(w_{uv})$, $D_u=D^{(\eta)}_{uu}$ and $\bm N=\Db{}^{-1/2}\Wb\Db{}^{-1/2}$, so that $\Lb=\bm I-\bm N$.
+For a vector $\bm h$ we write $\bm f=\Db{}^{-1/2}\bm h$, i.e., $f_u=h_u/\sqrt{D_u}$.
+Quantities built from a second pair $(q',\eta')$ carry a prime.
+
+\subsection{Proof of Proposition~\ref{prop:valid}}
+For the first inequality, by Eq.~\eqref{eq:Wentry},
+$|w_{uv}|=\tilde A_{uv}|1-2\eta\hat q_{uv}|\ge0$, and the self-loop
+contributes $|1-2\eta\hat q_{uu}|=1$ since $\hat q_{uu}=0$. Hence
+$D_u=\sum_v|w_{uv}|\ge1$ for every $u$, uniformly in
+$(\eta,\hat q)$, so $\Db\succeq\bm I\succ0$ and $\Db{}^{-1/2}$ exists.
+
+For the second part, we start by expanding $\bm h^{\!\top}\bm h$ using the symmetry of $\Wb$:
+\begin{align}
+\bm h^{\!\top}\bm h
+&=\sum_uD_uf_u^2=\sum_{u,v}|w_{uv}|f_u^2
+=\tfrac12\sum_{u,v}|w_{uv}|\bigl(f_u^2+f_v^2\bigr).
+\label{eq:pf-energy}
+\end{align}
+On the other hand, writing $w_{uv}=\sigma_{uv}|w_{uv}|$ gives
+\begin{equation}
+\bm h^{\!\top}\Db{}^{-1/2}\Wb\Db{}^{-1/2}\bm h
+=\sum_{u,v}|w_{uv}|\,\sigma_{uv}f_uf_v.
+\label{eq:pf-cross}
+\end{equation}
+Subtracting Eq.~\eqref{eq:pf-cross} from Eq.~\eqref{eq:pf-energy} and completing the square,
+\begin{equation}
+\bm h^{\!\top}\Lb\bm h
+=\tfrac12\sum_{u,v}|w_{uv}|\bigl(f_u-\sigma_{uv}f_v\bigr)^2\ge0,
+\label{eq:pf-lower}
+\end{equation}
+which is Eq.~\eqref{eq:quadform} and gives $\lambda_{\min}(\Lb)\ge0$.
+Adding instead of subtracting,
+\begin{equation}
+2\Vert\bm h\Vert^2-\bm h^{\!\top}\Lb\bm h
+=\tfrac12\sum_{u,v}|w_{uv}|\bigl(f_u+\sigma_{uv}f_v\bigr)^2\ge0,
+\label{eq:pf-upper}
+\end{equation}
+so $\lambda_{\max}(\Lb)\le2$.
+No step uses $\eta\le1$, so the statement holds for every $\eta\ge0$.
+\hfill$\square$
+
+\subsection{Proof of Theorem~\ref{thm:gauge}}
+With $q=\bm t^\star$ and $\eta\in[\tfrac12,1]$, the weight $w_{uv}=\tilde A_{uv}(1-2\eta\tstar_{uv})$ equals $1$ on homophilic edges and $1-2\eta\le0$ on heterophilic ones.
+Hence $|w_{uv}|=\tilde A_{uv}\bigl(1-2(1-\eta)\tstar_{uv}\bigr)$, which is the $(u,v)$ entry of $\bm W^{(1-\eta)}(\bm t^\star)$, and $\sigma_{uv}=\sstar_{uv}=\bar y_u\bar y_v$ wherever $w_{uv}\neq0$.
+Therefore
+\begin{equation}
+\bm W^{(\eta)}(\bm t^\star)=\Ys\,\bm W^{(1-\eta)}(\bm t^\star)\,\Ys
+\label{eq:pf-gaugeW}
+\end{equation}
+entrywise.
+The degree matrix depends on the absolute values of the weights only, so both sides of Eq.~\eqref{eq:pf-gaugeW} have the same $\bm D$, and $\Ys$ commutes with diagonal matrices.
+Multiplying Eq.~\eqref{eq:pf-gaugeW} by $\bm D^{-1/2}$ on both sides gives $\bm N_\eta=\Ys\bm N_{1-\eta}\Ys$ and, since $\Ys^2=\bm I$, statement~(i).
+The weights of $\bm W^{(1-\eta)}(\bm t^\star)$ lie in $[0,1]$, and at $\eta=1$ they equal $\tilde A_{uv}$, which is the unsigned operator $\bm L_0$.
+
+For (ii), $\Ys$ is orthogonal, so the two operators are similar and share their spectrum, and $(\Ys\bm M\Ys)^j=\Ys\bm M^j\Ys$ for every $j\ge0$ gives $g(\Ys\bm M\Ys)=\Ys g(\bm M)\Ys$ for every polynomial $g$.
+
+For (iii), $\bm L_{1-\eta}(\bm t^\star)$ is the normalized Laplacian of a graph with non-negative weights and degree matrix $\bm D$, so $\bm L_{1-\eta}(\bm t^\star)\bm D^{1/2}\bm 1=\bm D^{1/2}\bm 1-\bm D^{-1/2}|\bm W|\bm 1=\bm 0$.
+Using $\Ys\ys=\bm 1$,
+\[
+\bm L_\eta(\bm t^\star)\,\bm D^{1/2}\ys
+=\Ys\,\bm L_{1-\eta}(\bm t^\star)\,\Ys\bm D^{1/2}\ys
+=\Ys\,\bm L_{1-\eta}(\bm t^\star)\,\bm D^{1/2}\bm 1=\bm 0.
+\tag*{$\square$}
+\]
+
+\subsection{Proof of Theorem~\ref{thm:freq}}
+Apply Eq.~\eqref{eq:pf-lower} to $\bm h=\yt=\Db{}^{1/2}\ys$, for which $\bm f=\ys$.
+Since $\bar y_u,\bar y_v\in\{-1,+1\}$, for every pair with $w_{uv}\neq0$ we have $(\bar y_u-\sigma_{uv}\bar y_v)^2=4\cdot\mathds{1}[\sigma_{uv}\neq\bar y_u\bar y_v]$, and pairs with $w_{uv}=0$ do not contribute.
+Hence
+\[
+\yt^{\top}\Lb\,\yt=2\sum_{u,v}|w_{uv}|\,\mathds{1}[\sigma_{uv}\neq\sstar_{uv}].
+\]
+The denominator is $\yt^{\top}\yt=\sum_uD_u\bar y_u^2=\sum_{u,v}|w_{uv}|$.
+The ratio is $2\,\Fr_\eta(q)$ by Eq.~\eqref{eq:frustration}.
+\hfill$\square$
+
+\subsection{Proof of Corollary~\ref{cor:lift}}
+For $\eta\in[0,\tfrac12]$ every weight $w_{uv}=\tilde A_{uv}(1-2\eta q_{uv})$ is non-negative, so an edge with $w_{uv}\neq0$ is frustrated if and only if it is heterophilic.
+The numerator of Eq.~\eqref{eq:frustration} is $\sum_{\mathrm{het}}(1-2\eta q_{uv})=H-2\eta S_{\mathrm{het}}$ and the denominator is $\sum_{\mathrm{all}}(1-2\eta q_{uv})=M-2\eta S_{\mathrm{all}}$; self-loops have $q_{uu}=0$, so they add $n$ to $M$ and nothing to $S_{\mathrm{all}}$, and the denominator is at least $n>0$.
+At $\eta=0$ this gives $\Fr_0=H/M$.
+Differentiating,
+\[
+\frac{d}{d\eta}\Fr_\eta(q)=\frac{2\,(S_{\mathrm{all}}H-S_{\mathrm{het}}M)}{(M-2\eta S_{\mathrm{all}})^2},
+\]
+whose sign does not depend on $\eta$ and is negative if and only if $S_{\mathrm{het}}/H>S_{\mathrm{all}}/M$.
+
+For general $\eta$, a heterophilic edge is frustrated if and only if its weight is positive and then contributes $(1-2\eta q_{uv})_+$, while a homophilic edge is frustrated if and only if its weight is negative and then contributes $(2\eta q_{uv}-1)_+$, which gives the expression stated after the corollary.
+\hfill$\square$
+
+\subsection{Proof of Corollary~\ref{cor:energy}}
+Let $\Lb=\sum_i\lambda_i\bm u_i\bm u_i^{\top}$ and let $\mu_y$ be the probability measure that puts mass $\langle\bm u_i,\yt\rangle^2/\|\yt\|_2^2$ on $\lambda_i$.
+By Proposition~\ref{prop:valid} it is supported on $[0,2]$, its mean is $\rho_\eta(q)=2\Fr_\eta(q)$ by Theorem~\ref{thm:freq}, and
+\[
+E_0=\int\Bigl(1-\frac\lambda2\Bigr)^{2P}d\mu_y(\lambda),\qquad
+E_P=\int\Bigl(\frac\lambda2\Bigr)^{2P}d\mu_y(\lambda).
+\]
+Both integrands are convex, so Jensen's inequality gives $E_0\ge(1-\rho/2)^{2P}$ and $E_P\ge(\rho/2)^{2P}$.
+On $[0,2]$ we have $(1-\lambda/2)^{2P}\le1-\lambda/2$ and $(\lambda/2)^{2P}\le\lambda/2$, so $E_0\le1-\rho/2$ and $E_P\le\rho/2$.
+Under oracle signs and $\eta\in(\tfrac12,1]$, Theorem~\ref{thm:gauge}(iii) gives $\mu_y=\delta_0$, hence $E_0=1$ and $E_k=0$ for $k\ge1$ because $\mathcal W_k$ contains the factor $(\Lb/2)^k$.
+\hfill$\square$
+
+\subsection{Proof of Theorem~\ref{thm:snr}}
+\textbf{(a)} By Assumption~\ref{ass:features}, $\bm Z=\bm G\ys\bm\mu^{\top}+\bm G\bm\Xi$.
+Row $u$ of $\bm G\bm\Xi$ is the combination $\sum_vG_{uv}\bm\xi_v$ of independent Gaussian vectors, so it is $\mathcal N(\bm 0,\sigma^2\|\bm G_{u\cdot}\|_2^2\bm I)$ and
+\[
+\frac{\langle\bm z_u,\bm\mu\rangle}{\|\bm\mu\|}\sim\mathcal N\Bigl([\bm G\ys]_u\,\|\bm\mu\|,\;\sigma^2\|\bm G_{u\cdot}\|_2^2\Bigr).
+\]
+The readout errs when $\bar y_u\langle\bm z_u,\bm\mu\rangle\le0$, which has probability $\Gt\bigl(\bar y_u[\bm G\ys]_u\|\bm\mu\|/(\sigma\|\bm G_{u\cdot}\|_2)\bigr)$.
+For $\bm G=\Db{}^{-1}\Wb$,
+\[
+\bar y_u[\bm G\ys]_u=\frac{\sum_vw_{uv}\bar y_u\bar y_v}{D_u}=\mar_u,
+\qquad
+\|\bm G_{u\cdot}\|_2=\frac{(\sum_vw_{uv}^2)^{1/2}}{\sum_v|w_{uv}|}=\bigl(\deff_u\bigr)^{-1/2}.
+\]
+
+\noindent\textbf{(b)} The self-loop is homophilic with weight $1$ in all three cases.
+For the unsigned operator all $\tilde d_u$ weights equal $1$, so $\mar_u=(\tilde d_u-2\tilde h_u\tilde d_u)/\tilde d_u=1-2\tilde h_u$ and $\deff_u=\tilde d_u$.
+For oracle pruning the $(1-\tilde h_u)\tilde d_u$ homophilic edges keep weight $1$ and the others weight $0$, so $\mar_u=1$ and $\deff_u=(1-\tilde h_u)\tilde d_u$.
+For oracle signing $w_{uv}=\sstar_{uv}$, so $\mar_u=1$ and $\deff_u=\tilde d_u$.
+The statement on the class means follows from $[\bm G\ys]_u=\mar_u\bar y_u$: the mean of $\bm z_u$ is $(1-2\tilde h_u)\bm\mu$ for an anomaly and $-(1-2\tilde h_u)\bm\mu$ for a normal node, and averaging over the two classes gives the difference $2(1-\tilde h_a-\tilde h_n)\bm\mu$.
+
+\noindent\textbf{(c)} By Theorem~\ref{thm:gauge} with $\eta=1$, $\bm I-\bm L_1(\bm t^\star)=\Ys(\bm I-\bm L_0)\Ys$, hence $\bm G_s=\Ys\bm G_0\Ys$.
+The matrix $\bm I-\bm L_0$ is entrywise non-negative and $g$ has non-negative coefficients, so $\bm G_0\ge0$ entrywise.
+Using $\Ys\ys=\bm 1$ and $\bar y_u^2=1$,
+\[
+\bar y_u[\bm G_s\ys]_u=[\bm G_0\bm 1]_u=\|\bm G_{0,u\cdot}\|_1,
+\qquad
+\|\bm G_{s,u\cdot}\|_2=\|\bm G_{0,u\cdot}\|_2.
+\]
+For the unsigned operator, $|\bar y_u[\bm G_0\ys]_u|=\bigl|\sum_vG_{0,uv}\,\bar y_u\bar y_v\bigr|\le\sum_vG_{0,uv}$, with equality if and only if $\bar y_u\bar y_v$ is constant on the support of row $u$.
+Because of the self-loops, every power of $\bm I-\bm L_0$ has a positive diagonal, so $u$ belongs to the support of its own row, and equality holds if and only if all nodes of the support have the class of $u$.
+
+\noindent\textbf{(d)} Write $d=\tilde d_u$, $H_u=\tilde h_ud$, and let $S_{\mathrm{het}}$, $S_{\mathrm{hom}}$ be the sums of the scores over the heterophilic and homophilic edges of $u$, $S=S_{\mathrm{het}}+S_{\mathrm{hom}}$, and $S_2$ the sum of the squared scores.
+For $\eta<\tfrac12$ all weights are positive, and
+\[
+\mar_u(\eta)=\frac{(d-2H_u)-2\eta\,(S_{\mathrm{hom}}-S_{\mathrm{het}})}{d-2\eta S},\qquad
+\deff_u(\eta)=\frac{(d-2\eta S)^2}{d-4\eta S+4\eta^2S_2}.
+\]
+Differentiating at $\eta=0$,
+\[
+\mar_u'(0)=\frac{4}{d^2}\Bigl[S_{\mathrm{het}}(d-H_u)-H_uS_{\mathrm{hom}}\Bigr]
+=4\,\tilde h_u(1-\tilde h_u)\bigl(\bar q^{\mathrm{het}}_u-\bar q^{\mathrm{hom}}_u\bigr),
+\]
+with $\bar q^{\mathrm{het}}_u=S_{\mathrm{het}}/H_u$ and $\bar q^{\mathrm{hom}}_u=S_{\mathrm{hom}}/(d-H_u)$, and $(\deff_u)'(0)=(-4dS+4dS)/d^2=0$.
+Since $\snr_u=\mar_u\sqrt{\deff_u}$ and $\deff_u(0)=d$, the claim follows.
+\hfill$\square$
+
+\subsection{Proof of Theorem~\ref{thm:optimal}}
+Write $\bm h^{(0)}_v=\bar y_v\bm\mu+\bm\xi_v$ and $s_{uv}=\bar y_u\bar y_v$, with $s_{uu}=1$.
+Then
+\[
+\bar y_u\langle\bm z_u,\hat{\bm\mu}\rangle=\|\bm\mu\|\sum_v\vartheta_vs_{uv}+\bar y_u\sum_v\vartheta_v\langle\bm\xi_v,\hat{\bm\mu}\rangle.
+\]
+Conditionally on $y_u$ and the scores, Assumption~\ref{ass:reliability} gives $\mathbb E[s_{uv}]=1-2p(q_{uv})=c_v$ and $\operatorname{Var}[s_{uv}]=1-c_v^2$, independently across $v$, and the noise terms are independent of the signs with variance $\sigma^2$.
+Hence the conditional mean is $\|\bm\mu\|\sum_v\vartheta_vc_v$ and the conditional variance is $\sum_v\vartheta_v^2\bigl(\|\bm\mu\|^2(1-c_v^2)+\sigma^2\bigr)=\sum_v\vartheta_v^2\varsigma_v^2$, which gives the stated form of $\mathcal J$.
+
+\noindent\textbf{(i)} By the Cauchy--Schwarz inequality,
+\[
+\sum_v\vartheta_vc_v=\sum_v(\vartheta_v\varsigma_v)\frac{c_v}{\varsigma_v}
+\le\Bigl(\sum_v\vartheta_v^2\varsigma_v^2\Bigr)^{1/2}\Bigl(\sum_v\frac{c_v^2}{\varsigma_v^2}\Bigr)^{1/2},
+\]
+with equality if and only if $\vartheta_v\varsigma_v\propto c_v/\varsigma_v$ with a positive factor.
+
+\noindent\textbf{(ii)} For $\bm\vartheta\ge0$ we have $\sum_v\vartheta_vc_v\le\sum_v\vartheta_v(c_v)_+$, with equality if and only if $\vartheta_v=0$ whenever $c_v<0$, and the Cauchy--Schwarz inequality applied to $(c_v)_+$ gives the bound and its equality case.
+
+\noindent\textbf{(iii)} $(\mathcal J^\star)^2-(\mathcal J^\star_+)^2=\|\bm\mu\|^2\sum_{v:\,c_v<0}c_v^2/\varsigma_v^2$, and $c_v<0$ if and only if $p(q_{uv})>\tfrac12$.
+
+\noindent\textbf{(iv)} Let $X=\bar y_u\langle\bm z_u,\hat{\bm\mu}\rangle$ with conditional mean $m>0$ and variance $v$.
+Cantelli's inequality gives $\Pr[X\le0]=\Pr[X-m\le-m]\le v/(v+m^2)=1/(1+\mathcal J(\bm\vartheta)^2)$.
+\hfill$\square$
+
+\subsection{Proof of Corollary~\ref{cor:slope}}
+By Theorem~\ref{thm:optimal}(i) the optimal weights are proportional to $c_v/\varsigma_v^2$ with $\varsigma_v^2=\sigma^2\bigl(1+(\|\bm\mu\|/\sigma)^2(1-c_v^2)\bigr)$, so $\sigma^2c_v/\varsigma_v^2\to c_v$ uniformly in $v$ as $\|\bm\mu\|/\sigma\to0$.
+With $p(q)=\eta_0q$ we have $c_v=1-2\eta_0\hat q_{uv}$ for $v\neq u$, and $c_u=1=1-2\eta_0\hat q_{uu}$ because $\hat q_{uu}=0$.
+These are the entries of row $u$ of $\bm W^{(\eta_0)}$ by Eq.~\eqref{eq:Wentry}.
+\hfill$\square$
+
+\subsection{Proof of Proposition~\ref{prop:e1}}
+Fix an edge with descriptor $\bm z$.
+By definition, its endpoints are both anomalous, of different classes, or both normal with probabilities $P_{aa}$, $q^\star$, $P_{nn}$, and by Assumption~\ref{ass:sampling} the labeling is independent of $\bm z$ given the classes.
+The edge belongs to $\mathcal E_1$ when exactly one endpoint is labeled, and its target is $1$ when that endpoint is anomalous.
+If both endpoints are anomalous, this happens with probability $2r_1(1-r_1)$.
+If the endpoints differ, the target is $1$ when the anomalous endpoint is labeled and the normal one is not, with probability $r_1(1-r_0)$, and $0$ in the opposite configuration, with probability $r_0(1-r_1)$.
+If both endpoints are normal, the target is $0$ with probability $2r_0(1-r_0)$.
+Therefore
+\begin{align*}
+\Pr[t_{uv}=1,\ (u,v)\in\mathcal E_1\mid\bm z]&=r_1\bigl[2(1-r_1)P_{aa}+(1-r_0)q^\star\bigr],\\
+\Pr[t_{uv}=0,\ (u,v)\in\mathcal E_1\mid\bm z]&=r_0\bigl[2(1-r_0)P_{nn}+(1-r_1)q^\star\bigr],
+\end{align*}
+and the ratio is the stated odds.
+If $r_1=r_0$ the factors $1-r$ cancel and the odds equal $(2P_{aa}+q^\star)/(2P_{nn}+q^\star)=\iota/(1-\iota)$, because $1-\iota=P_{nn}+\tfrac12q^\star$; hence $\mathbb E[t_{uv}\mid\bm z]=\iota(\bm z)$.
+In general each factor $1-r_c$ lies in $[1-r,1]$, so the first bracket lies in $[(1-r)\,2\iota,\,2\iota]$ and the second in $[(1-r)\,2(1-\iota),\,2(1-\iota)]$, which gives the last claim.
+\hfill$\square$
+
+\subsection{Proof of Corollary~\ref{cor:camouflage}}
+For a normal node, the edges to anomalies are negative and heterophilic and all other edges are positive and homophilic, so every edge is correctly signed and $\mar_u=1$.
+For an anomaly, the self-loop is positive and correct, the $\tilde h_u\tilde d_u$ edges to normal nodes are negative and correct, and the remaining $\tilde d_u-1-\tilde h_u\tilde d_u$ edges to other anomalies are negative but homophilic.
+All weights have absolute value $1$, so
+\[
+\mar_u=\frac{1+\tilde h_u\tilde d_u-(\tilde d_u-1-\tilde h_u\tilde d_u)}{\tilde d_u}=2\tilde h_u-1+\frac{2}{\tilde d_u}.
+\]
+This exceeds the unsigned margin $1-2\tilde h_u$ if and only if $4\tilde h_u>2-2/\tilde d_u$.
+\hfill$\square$
+
+\begin{table}[h]
+\centering
+\caption{Expected number of doubly-labeled edges ($\mathcal E_2$) and singly-labeled edges ($\mathcal E_1$) when $100$ labeled nodes are drawn uniformly, computed from the statistics of Table~\ref{Tab: Dataset statistics} as $|\mathcal E|\tfrac{100\cdot99}{n(n-1)}$ and $|\mathcal E|\tfrac{2\cdot100\,(n-100)}{n(n-1)}$.}
+\label{tab:e2size}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Dataset & $n$ & $|\mathcal E|$ & $\mathbb E|\mathcal E_2|$ & $\mathbb E|\mathcal E_1|$ \\
+\midrule
+Amazon & 11,944 & 4,398,392 & 305.3 & 73,040 \\
+YelpChi & 45,954 & 3,846,979 & 18.0 & 16,707 \\
+T-Finance & 39,357 & 21,222,543 & 135.6 & 107,575 \\
+Tolokers & 11,758 & 519,000 & 37.2 & 8,754 \\
+Reddit & 10,984 & 168,016 & 13.8 & 3,032 \\
+Weibo & 8,405 & 407,963 & 57.2 & 9,593 \\
+Questions & 48,921 & 153,540 & 0.6 & 626 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Proof of Proposition~\ref{prop:crossfit}}
+\textbf{(i)} If $v$ is unlabeled or $v\in\mathcal F_a$, the only fold that contains an endpoint of $(u,v)$ is $\mathcal F_a$, so $\hat q_{uv}=\phi^{(a)}(\vz_{uv})$.
+The descriptor $\vz_{uv}$ depends on the graph and the features only.
+The model $\phi^{(a)}$ is trained on edges none of whose labeled endpoints lies in $\mathcal F_a$, and the targets of Eq.~\eqref{eq:edge-target} use the labels of the labeled endpoints only, so $\phi^{(a)}$ is a function of the graph, the features and the labels outside $\mathcal F_a$.
+
+\noindent\textbf{(ii)} If $v\in\mathcal F_b$ with $b\neq a$, both folds contain an endpoint, so $\hat q_{uv}=\tfrac12\bigl(\phi^{(a)}+\phi^{(b)}\bigr)(\vz_{uv})$.
+Since $u\notin\mathcal F_b$, the training set of $\phi^{(b)}$ contains the edges between $u$ and every neighbor that is unlabeled or labeled outside $\mathcal F_b$, with targets that depend on $y_u$.
+
+For the last claim, a model trained without $\mathcal F_a\cup\mathcal F_b$ uses no label of either fold, so combined with (i) every edge incident to $u$ is scored by models that never use $y_u$.
+\hfill$\square$
+
+\subsection{Proof of Theorem~\ref{thm:stab}}
+We use two elementary facts.
+
+\begin{lemma}\label{lem:schur}
+Let $\bm M$ be symmetric with non-negative entries, and let $\bm x$ have positive entries with $\bm M\bm x\le\delta\bm x$ entrywise. Then $\|\bm M\|_2\le\delta$. Moreover, $\|\bm A\|_2\le\|\,|\bm A|\,\|_2$ for every symmetric $\bm A$, where $|\bm A|$ is the entrywise absolute value.
+\end{lemma}
+\begin{proof}
+For every vector $\bm v$, using $2ab\le a^2+b^2$ with $a=|v_u|/x_u$, $b=|v_w|/x_w$ and the symmetry of $\bm M$,
+\[
+|\bm v^{\top}\bm M\bm v|\le\sum_{u,w}M_{uw}x_ux_w\frac{|v_u|}{x_u}\frac{|v_w|}{x_w}
+\le\sum_u\frac{v_u^2}{x_u^2}\,x_u\sum_wM_{uw}x_w\le\delta\|\bm v\|_2^2.
+\]
+The second claim follows from $|\bm v^{\top}\bm A\bm v|\le|\bm v|^{\top}|\bm A|\,|\bm v|$.
+\end{proof}
+
+Write $\bm L'-\bm L=\bm N-\bm N'=\bm T_1+\bm T_2$ with
+\[
+\bm T_1=\bm D^{-1/2}(\bm W-\bm W')\bm D^{-1/2},\qquad
+\bm T_2=\bm D^{-1/2}\bm W'\bm D^{-1/2}-\bm N'.
+\]
+
+\emph{Bound on $\bm T_1$.}
+Let $\bm M=\bm D^{-1/2}|\bm W-\bm W'|\bm D^{-1/2}$ and $\bm x=\bm D^{1/2}\bm 1$.
+Then $(\bm M\bm x)_u=D_u^{-1/2}\sum_v|w_{uv}-w'_{uv}|\le\delta\,x_u$ by the definition of $\delta$, and Lemma~\ref{lem:schur} gives $\|\bm T_1\|_2\le\|\bm M\|_2\le\delta$.
+
+\emph{Bound on $\bm T_2$.}
+Let $\bm R=\bm D^{-1/2}\bm D'^{1/2}$, a diagonal matrix with entries $r_u=\sqrt{D'_u/D_u}$.
+Then $\bm D^{-1/2}\bm W'\bm D^{-1/2}=\bm R\bm N'\bm R$ and
+\[
+\bm T_2=(\bm R-\bm I)\bm N'\bm R+\bm N'(\bm R-\bm I).
+\]
+Since $|\sqrt x-1|\le|x-1|$ for $x\ge0$ and $\bigl||w'_{uv}|-|w_{uv}|\bigr|\le|w'_{uv}-w_{uv}|$,
+\[
+|r_u-1|\le\frac{|D'_u-D_u|}{D_u}\le\frac{\sum_v|w_{uv}-w'_{uv}|}{D_u}\le\delta,
+\]
+so $\|\bm R-\bm I\|_2\le\delta$ and $\|\bm R\|_2\le1+\delta$.
+Proposition~\ref{prop:valid} gives $\|\bm N'\|_2\le1$.
+Hence $\|\bm T_2\|_2\le\delta(1+\delta)+\delta$, and $\|\bm L-\bm L'\|_2\le3\delta+\delta^2$.
+
+\emph{Bound on $\delta$.}
+By Eq.~\eqref{eq:Wentry},
+\[
+|w_{uv}-w'_{uv}|=2\tilde A_{uv}\,|\eta q_{uv}-\eta'q'_{uv}|
+\le2\tilde A_{uv}\bigl(\eta\,|q_{uv}-q'_{uv}|+|\eta-\eta'|\,q'_{uv}\bigr).
+\]
+Summing over $v$ and dividing by $D_u\ge\gamma\tilde d_u$ gives $\sum_v|w_{uv}-w'_{uv}|/D_u\le\tfrac2\gamma\bigl(\eta\,\bar e_u+|\eta-\eta'|\,\tilde d_u^{-1}\sum_v\tilde A_{uv}q'_{uv}\bigr)$, and taking the maximum over $u$ gives the claim.
+
+\emph{The degree-dependent constant.}
+For comparison, bounding the three terms of the decomposition $\bm L'-\bm L=\bm D^{-1/2}(\bm W-\bm W')\bm D^{-1/2}+(\bm D^{-1/2}-\bm D'^{-1/2})\bm W'\bm D^{-1/2}+\bm D'^{-1/2}\bm W'(\bm D^{-1/2}-\bm D'^{-1/2})$ by $\|\bm W-\bm W'\|_2\le2\eps\dmax$, $\|\bm D^{-1/2}-\bm D'^{-1/2}\|_2\le\eps\dmax$ and $\|\bm W'\|_2\le\dmax$, with $\eps=\eta\|q-q'\|_\infty+|\eta-\eta'|$ and $\dmax=\max_u\tilde d_u$, gives $\|\bm L-\bm L'\|_2\le2\dmax(1+\dmax)\,\eps$.
+This is the constant mentioned after Theorem~\ref{thm:stab}.
+\hfill$\square$
+
+\subsection{Proof of Theorem~\ref{thm:brier}}
+We use the decomposition $\bm N-\bm N'=\bm T_1+\bm T_2$ of the previous proof with $\eta'=\eta$, and write $\delta_u=|D'_u-D_u|/D_u\le\delta$.
+
+\emph{Bound on $\bm T_1$.}
+Since $|w_{uv}-w'_{uv}|=2\eta\tilde A_{uv}|q_{uv}-q'_{uv}|$, $D_u\ge\gamma\tilde d_u$ and $D_v\ge1$,
+\[
+\|\bm T_1\|_F^2=\sum_{u,v}\frac{(w_{uv}-w'_{uv})^2}{D_uD_v}
+\le\frac{4\eta^2}{\gamma}\sum_u\frac{1}{\tilde d_u}\sum_v\tilde A_{uv}(q_{uv}-q'_{uv})^2=\frac{4\eta^2}{\gamma}\,\mathcal B(q,q').
+\]
+
+\emph{Bound on $\bm T_2$.}
+The entries of $\bm T_2=\bm R\bm N'\bm R-\bm N'$ are $N'_{uv}(r_ur_v-1)$, and
+$|r_ur_v-1|\le|r_u-1|\,r_v+|r_v-1|\le\delta_u(1+\delta)+\delta_v$.
+The rows of $\bm N'$ have squared norm at most $1$, because $|w'_{uv}|\le D'_v$ gives
+$\sum_vw'^2_{uv}/(D'_uD'_v)\le\sum_v|w'_{uv}|/D'_u=1$, and the same holds for its columns by symmetry.
+Using $(a+b)^2\le2a^2+2b^2$,
+\[
+\|\bm T_2\|_F^2\le2(1+\delta)^2\sum_u\delta_u^2\sum_vN'^2_{uv}+2\sum_v\delta_v^2\sum_uN'^2_{uv}
+\le2\bigl[(1+\delta)^2+1\bigr]\sum_u\delta_u^2\le2(2+\delta)^2\sum_u\delta_u^2.
+\]
+Finally $\delta_u\le\sum_v|w_{uv}-w'_{uv}|/D_u\le\tfrac{2\eta}{\gamma}\bar e_u$, and $\bar e_u^2\le b_u$ by Jensen's inequality, so $\sum_u\delta_u^2\le\tfrac{4\eta^2}{\gamma^2}\mathcal B(q,q')$.
+
+Combining the two bounds with $\gamma\le1$,
+\[
+\|\bm N-\bm N'\|_F\le\frac{2\eta}{\sqrt\gamma}\sqrt{\mathcal B}+\frac{2\eta}{\gamma}\sqrt2\,(2+\delta)\sqrt{\mathcal B}
+\le\frac{2\eta}{\gamma}\Bigl(1+\sqrt2\,(2+\delta)\Bigr)\sqrt{\mathcal B(q,q')}.
+\tag*{$\square$}
+\]
+
+\subsection{Proof of Theorem~\ref{thm:repr}}
+Abbreviate $\bm L=\bm L_\eta(q)$ and $\bm L'=\bm L_\eta(q')$.
+Write $\Wk(\bm L)=\kappa_k\prod_{m=1}^{P}\bm F_m$, with
+$\bm F_m=\bm L/2$ for $m\le k$ and $\bm F_m=\bm I-\bm L/2$ otherwise, and define $\bm F'_m$ from $\bm L'$ similarly.
+By Proposition~\ref{prop:valid} every factor satisfies
+$\Vert\bm F_m\Vert_2,\Vert\bm F'_m\Vert_2\le1$, while
+$\Vert\bm F_m-\bm F'_m\Vert_2=\tfrac12\Vert\bm L-\bm L'\Vert_2$ in both cases.
+Telescoping the product and bounding the untouched factors by $1$,
+\begin{equation}
+\Bigl\Vert\prod_m\bm F_m-\prod_m\bm F'_m\Bigr\Vert_2
+\le\sum_{m=1}^{P}\Vert\bm F_m-\bm F'_m\Vert_2
+=\tfrac{P}{2}\Vert\bm L-\bm L'\Vert_2.
+\label{eq:pf-prod}
+\end{equation}
+Hence
+\begin{equation}
+\Vert\Wk(\bm L)-\Wk(\bm L')\Vert_2\le\Lambda_k\Vert\bm L-\bm L'\Vert_2
+\label{eq:pf-kernel}
+\end{equation}
+with $\Lambda_k=\tfrac12P\kappa_k$, and since
+$\Vert\bm M\bm H^{(0)}\Vert_F\le\Vert\bm M\Vert_2\Vert\bm H^{(0)}\Vert_F$,
+\begin{equation}
+\Vert\bm H_k-\bm H'_k\Vert_F
+\le\Lambda_k\Vert\bm L-\bm L'\Vert_2\Vert\bm H^{(0)}\Vert_F.
+\label{eq:pf-chan}
+\end{equation}
+Since $\bm Z$ concatenates the blocks $\sqrt{g_k}\bm H_k$, the
+squared Frobenius norm is block-additive, and $\sum_kg_k=1$ gives
+\begin{equation}
+\Vert\bm Z(q)-\bm Z(q')\Vert_F^2
+=\sum_{k=0}^{P}g_k\Vert\bm H_k-\bm H'_k\Vert_F^2
+\le\max_k\Vert\bm H_k-\bm H'_k\Vert_F^2.
+\label{eq:pf-gate}
+\end{equation}
+The bound is uniform over the simplex, so it holds for every value of $\bm g$ during training.
+Combining Eq.~\eqref{eq:pf-gate} with Eq.~\eqref{eq:pf-chan} and Eq.~\eqref{eq:stabjoint} at $\eta'=\eta$, for which $\delta\le2\eta\,\eloc(q,q')/\gamma$, yields Eq.~\eqref{eq:stabZ}.
+\hfill$\square$
+
+\begin{lemma}[Frobenius Lipschitz continuity of the kernels]\label{lem:frob}
+Let $\bm L,\bm L'$ be symmetric with spectra in $[0,2]$ and let $f$ be Lipschitz on $[0,2]$ with constant $\ell$. Then $\|f(\bm L)-f(\bm L')\|_F\le\ell\,\|\bm L-\bm L'\|_F$. In particular, $\|\Wk(\bm L)-\Wk(\bm L')\|_F\le\sup_{\lambda\in[0,2]}|\mathcal W_k'(\lambda)|\cdot\|\bm L-\bm L'\|_F$.
+\end{lemma}
+\begin{proof}
+Let $\bm L=\bm U\operatorname{diag}(\lambda_i)\bm U^{\top}$ and $\bm L'=\bm V\operatorname{diag}(\lambda'_j)\bm V^{\top}$ with orthogonal $\bm U,\bm V$, and $\bm C=\bm U^{\top}\bm V$.
+The $(i,j)$ entry of $\bm U^{\top}\bigl(f(\bm L)-f(\bm L')\bigr)\bm V$ is $\bigl(f(\lambda_i)-f(\lambda'_j)\bigr)C_{ij}$, and that of $\bm U^{\top}(\bm L-\bm L')\bm V$ is $(\lambda_i-\lambda'_j)C_{ij}$.
+The Frobenius norm is invariant under orthogonal transformations, so
+\[
+\|f(\bm L)-f(\bm L')\|_F^2=\sum_{i,j}\bigl(f(\lambda_i)-f(\lambda'_j)\bigr)^2C_{ij}^2
+\le\ell^2\sum_{i,j}(\lambda_i-\lambda'_j)^2C_{ij}^2=\ell^2\|\bm L-\bm L'\|_F^2.\qedhere
+\]
+\end{proof}
+
+\subsection{Proof of Corollary~\ref{cor:misaligned}}
+For $q=\bm t^\star$ and $\eta\in(\tfrac12,1]$ the homophilic edges have weight $1$ and the heterophilic ones have absolute weight $2\eta-1$, so $D^\star_{uu}=\tilde d_u\bigl(1-2(1-\eta)\tilde h_u\bigr)$ and $\gamma^\star=1-2(1-\eta)\max_u\tilde h_u\ge2\eta-1>0$.
+Theorem~\ref{thm:stab} with $\bm L=\bm L^\star$, $\bm L'=\hat{\bm L}$ and $\eta'=\eta$ gives $\|\hat{\bm L}-\bm L^\star\|_2\le3\delta+\delta^2$ with $\delta\le2\eta\,\eloc(\hat q,\bm t^\star)/\gamma^\star$.
+
+By Theorem~\ref{thm:gauge}(iii), $\bm L^\star\yt^\star=\bm 0$, hence $\mathcal W_0(\bm L^\star)\yt^\star=\kappa_0(\bm I-\bm L^\star/2)^P\yt^\star=\kappa_0\yt^\star$, whose $u$-th entry is $\kappa_0\sqrt{D^\star_{uu}}\,\bar y_u$.
+Let $\bm r=\mathcal W_0(\hat{\bm L})\yt^\star$ and let $\mathcal M$ be the set of nodes at which $r_u$ does not have the sign of $\bar y_u$.
+For $u\in\mathcal M$ we have $|r_u-\kappa_0\sqrt{D^\star_{uu}}\,\bar y_u|\ge\kappa_0\sqrt{D^\star_{uu}}$, so by Eq.~\eqref{eq:pf-kernel},
+\[
+\kappa_0^2\sum_{u\in\mathcal M}D^\star_{uu}\le\bigl\|\bigl(\mathcal W_0(\hat{\bm L})-\mathcal W_0(\bm L^\star)\bigr)\yt^\star\bigr\|_2^2
+\le\Lambda_0^2\,(3\delta+\delta^2)^2\sum_uD^\star_{uu}.
+\]
+Dividing by $\kappa_0^2\sum_uD^\star_{uu}$ and using $\Lambda_0/\kappa_0=P/2$ gives the claim.
+\hfill$\square$
+
+\subsection{Numerical checks}\label{app:numerical}
+Every identity and bound of Section~\ref{sec:theory} was checked numerically on random two-class graphs with random score vectors and $\eta\in[0,1.6]$.
+The spectral inclusion of Proposition~\ref{prop:valid} holds for every sampled $\eta$, the identities of Theorems~\ref{thm:gauge}, \ref{thm:freq} and~\ref{thm:snr}(a) and the gap formula of Theorem~\ref{thm:optimal}(iii) hold to machine precision, and Proposition~\ref{prop:e1} is reproduced by simulation under uniform and class-dependent labeling.
+No bound was violated; the largest observed ratio between the left and right sides was $0.16$ for Theorem~\ref{thm:stab}, $0.06$ for Theorem~\ref{thm:brier} and $0.06$ for Theorem~\ref{thm:repr}.

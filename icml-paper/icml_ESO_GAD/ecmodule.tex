@@ -1,0 +1,117 @@
+Our main target of ESO-GAD is to include the relational semantics of an edge into the spectral filtering in the frequency domain.
+Recent evidence on edge heterophily discrimination shows
+that homophilic and heterophilic edges can be estimated from local features~\citep{GREET, H2-FDetector}.
+We therefore cast edge-semantics estimation as a supervised task, which classifies edges as heterophilic or homophilic given the input training data.
+For each edge $(u,v)\in\cE$ we learn a heterophily probability
+\begin{equation}
+  q_{uv} \;=\; \Pr\!\left[\, y_u \neq y_v \,\middle|\, \vz_{uv} \,\right]
+  \;\in\; [0,1],
+  \label{eq:quv}
+\end{equation}
+where $\vz_{uv}$ is a symmetric edge descriptor and the probability is parameterized by a small multilayer perceptron (MLP).
+The probabilistic design is necessary in ESO-GAD because the labeled set $\cV_L$ is tiny and severely imbalanced.
+The output probability $q_{uv}$ can be considered as a smooth transition of an edge semantic between the homophily label and heterophily label.
+Unlike hard pruning, where each false positive deletes the local structure, a calibrated soft probability is expected to degrade gracefully when there is uncertainty in classifying the edge.
+
+The edge descriptor $\vz_{uv}$ comprises a feature component $\vz^{x}_{uv}$ and a local structural component $\vz^{s}_{uv}$.
+Comparing endpoint features is a standard basis for edge representations in various graph learning tasks ~\citep{node2vec,
+CARE-GNN, GREET}.
+Following this construction, we combine three symmetric similarity measures for the feature similarity component $\vz^{x}_{uv}$ of the edge $(u,v)\in\cE$ with feature vectors $\vx_u, \vx_v \in \mathbb{R}^{d}$:
+\begin{equation}
+  \vz^{x}_{uv} \;=\;
+  \bigl[\, |\vx_u-\vx_v|,\; \vx_u\odot\vx_v,\; \cos(\vx_u,\vx_v) \,\bigr],
+  \label{eq:zfeature}
+\end{equation}
+where $\odot$ is the Hadamard product, $\cos(\cdot,\cdot)$ the cosine similarity, and
+$\vz^{x}_{uv}\in\mathbb{R}^{2d+1}$.
+Each component of $\vz^{x}_{uv}$ captures complementary semantic information about the relation between the endpoints, which is useful for characterizing how information relevant to the target label propagates along the edge.
+%the absolute difference captures attribute disagreement, the Hadamard product captures co-activation patterns.
+
+The structural block $\vz^{s}_{uv}$ collects local statistics of the two end-points, which include
+\begin{equation}
+\begin{aligned}
+  \vz^{s}_{uv} \;=\;
+  \Bigl[\,&
+    \log(1{+}d_u)+\log(1{+}d_v),\;
+    \bigl|\log\tfrac{1+d_u}{1+d_v}\bigr|,\\
+    &J_{uv},\;
+    \tfrac{|\cN_u\cap\cN_v|}{\sqrt{d_u d_v}}
+  \,\Bigr],
+\end{aligned}
+  \label{eq:structural}
+\end{equation}
+with $J_{uv}=|\cN_u\cap\cN_v|/|\cN_u\cup\cN_v|$ the Jaccard overlap of the endpoint neighborhoods $\cN_u$, $\cN_v$ .
+The symmetric degree sum and absolute log-ratio encode the magnitude and asymmetry of endpoint connectivity, while the
+overlap terms measure triadic closure around the edge.
+%These quantities are directly motivated by fraud topology 
+Given a camouflaged anomaly node, it can be attached to well-connected normal nodes but rarely shares their neighborhoods, so heterophilic edges concentrate at large degree asymmetry and low overlap~\citep{CARE-GNN,PCGNN}.
+
+The complete edge descriptor $\vz_{uv}$ is constructed as 
+\begin{equation}
+    \vz_{uv} = \Bigl[\,\vz^{x}_{uv} \;\|\; \vz^{s}_{uv} \Bigr],
+    \label{eq:zuv}
+\end{equation}
+where $\|$ is a concatenation operator.
+It is clear that $\vz_{uv}$ preserves the symmetric semantic of the edge in this construction and prevents label leakage of the targeted label into the extracted features.
+We employ a shallow MLP network, parameterized by $\phi$, to train a prediction function from the input $\vz_{uv}$ to the homophily/heterophily semantic of the edge.
+The training target $t_{uv}$ is based on whether the endpoints of an edge $(u, v)$ belong to the set $\mathcal{V}_L$.
+Firstly, the edge set is split according to how many of its endpoints belong to the training set $\mathcal{V}_L$:
+\begin{align}
+  \mathcal{E}_2 &= \{(u,v)\in\mathcal{E} :   |\{u, v\} \cap \mathcal{V}_L| = 2 \} \label{eq:tuvE2}, \\
+  \mathcal{E}_1 &= \{(u,v)\in\mathcal{E} : |\{u, v\} \cap \mathcal{V}_L| = 1 \} \label{eq:tuvE1}
+\end{align}
+and let $\mathcal{E}_0$ collect the remaining edges.
+For $(u,v)\in\mathcal{E}_2\cup\mathcal{E}_1$
+we assign the binary heterophily target
+\begin{equation}
+  t_{uv} =
+  \begin{cases}
+    \mathds{1}\!\left[\, y_u \neq y_v \,\right], & (u,v)\in\mathcal{E}_2,\\[2pt]
+    y_u, & (u,v)\in\mathcal{E}_1,\; u \in \mathcal{V}_L,\\[2pt]
+    y_v, & (u,v)\in\mathcal{E}_1,\; v \in \mathcal{V}_L .
+  \end{cases}
+  \label{eq:edge-target}
+\end{equation}
+The first case is the definition of edge heterophily and it constructs a clean label edge set for training.
+The remaining cases are the same definition evaluated under modal imputation of the missing endpoint.
+Because anomalies are rare, the marginally most probable label of an unobserved node is
+$\hat{y}=0$, and $\mathds{1}[\,y_u \neq 0\,] = y_u$.
+A singly-labeled edge is therefore treated as
+heterophilic when its labeled endpoint is anomalous and as homophilic otherwise, which is consistent with the camouflage assumption in fraud graphs.
+From the empirical aspect, admitting the approximated targets in $\mathcal{E}_1$ trades label noise against the number of training samples.
+Nevertheless, it is expected to have a bias estimate of the heterophily target of the edges in $\mathcal{E}$ under the semi-supervised setting.
+We deliberately admit this approximation error rather than restricting training to $\mathcal{E}_2$ because the operator is designed to absorb the noisy estimate.
+Proposition~\ref{prop:e1} characterizes exactly what the resulting target estimates, and Corollary~\ref{cor:camouflage} states when the imputation is beneficial.
+
+The trained parameters $\phi$ are then used to produce the predicted soft heterophily score
+\begin{equation}
+  \hat{q}_{uv} \;=\; \text{MLP}_\phi(\vz_{uv})
+  \label{eq:quvfromphi}
+\end{equation}
+The training loss of Phase 1 is designed as
+\begin{equation}
+    \mathcal{L}_{EC} = \mathcal{L}_{BCE}(t_{uv}, \hat{q}_{uv}) +   \mathcal{L}_{MSE}(t_{uv}, \hat{q}_{uv})
+    \label{eq:LossEC}
+\end{equation}
+where $\mathcal{L}_{BCE}$ and $\mathcal{L}_{MSE}$ are the binary cross entropy loss and the Brier loss, respectively.
+The Brier loss is additionally included to encourage calibrated edge-heterophily probabilities, since edge-level predictions in GNNs can exhibit substantial probability miscalibration \citep{nascimento2024innout}.
+To reduce the estimation noise caused by the sparsity of the training data, and to keep the labels of a node out of the scores of its own edges, the calibrator is cross-fitted with folds that are grouped by node.
+The labeled nodes $\mathcal{V}_L$ are split into $K$ class-stratified folds $\mathcal{F}_1,\dots,\mathcal{F}_K$, and the $j$-th model $\phi^{(j)}$ is trained on the edges of $\mathcal{E}_2\cup\mathcal{E}_1$ none of whose labeled endpoints lies in $\mathcal{F}_j$.
+An edge is then scored by the average of the models whose held-out fold contains one of its endpoints, and by the average of all $K$ models when neither endpoint is labeled.
+Proposition~\ref{prop:crossfit} states which scores are free of a node's own label under this rule.
+%The full training pipeline is given in Algorithm 1.
+After getting the aggregated prediction score $\hat{q}_{uv}$, we set $\hat{q}_{uu} = 0$ i.e. the self-loop edge is always homophilic.
+%\begin{algorithm}[h]
+%\caption{Edge calibration with K-fold training}
+%\label{alg:ecsbwgnn}
+%\begin{algorithmic}[1]
+%\Require Graph $G$, labeled set $\mathcal{V}_L$, folds $K$
+%\State Compute the edge descriptor $z_{uv}$ using Eq.~\eqref{eq:zfeature}
+%\State Stratify $\mathcal{V}_L$ into $K$ folds
+%\For{$j = 1,\dots,K$}
+%  \State Construct the target for fold $j$, based Eq.~\eqref{eq:edge-target}
+%  \State Train $MLP_\phi^{(j)}$ on using $\mathcal{L}_{EC}$ in Eq.~\eqref{eq:LossEC}
+%\EndFor
+%\State Average out-of-fold predictions to get $\hat{q}_{uv}$
+%\end{algorithmic}
+%\end{algorithm}

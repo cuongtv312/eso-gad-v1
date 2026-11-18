@@ -1,0 +1,7 @@
+\section{Additional Experiment Results}\label{app:additional}
+\input{recK}
+We further report Recall@K (RecK) under the same seven-dataset evaluation setting as the AUROC and AUPRC results in Tables~\ref{tab:ESO_gad_auroc} and~\ref{tab:ESO_gad_auprc}.
+ESO-GAD achieves the best RecK on five of the seven datasets, including Amazon, YelpChi, Tolokers, Reddit, and Questions.
+Our method ranks second on T-Finance and Weibo. The gains are particularly pronounced on YelpChi, Tolokers, and Questions, where ESO-GAD improves over the strongest competing method.
+This trend is broadly consistent with Tables~\ref{tab:ESO_gad_auroc} and~\ref{tab:ESO_gad_auprc}, where ESO-GAD also demonstrates strong performance across AUROC and AUPRC, indicating that its improvements extend beyond ranking-based aggregate metrics to retrieving anomalous nodes among the top-ranked predictions.
+Although ConsisGAD and GCN achieve slightly higher RecK on T-Finance and Weibo, respectively, ESO-GAD remains competitive on both datasets, supporting the overall robustness of the signed spectral operator across different evaluation criteria.
