@@ -1,6 +1,6 @@
 # Learned η against fixed η, and ESO-GAD against feature-only models
 
-Nov 18, 2026 · companion to `theory.md` and `experiment.md` · every number here is from the Nov 18 workspace on the earlier machine; the run folders are listed at the end. **The workspace moved on Nov 19:** `src/` is now `wsdm-2026/BWGNN_codebase/`, and the scripts and `runs/` folders named here are not on the new machine (`experiment.md`, "Workspace on this machine")
+Nov 18, 2026 · companion to `theory.md` and `experiment.md` · every number here is from the Nov 18 workspace on the earlier machine; the run folders are listed at the end. **The workspace moved on Nov 19:** `src/` is now `wsdm-2026/BWGNN_codebase/`. The scripts were rebuilt there (`main_gadbench.py`, `dp0_eta_check.py`, `flat_eta_check.py`; `experiment.md`, "Rebuilt on Nov 19"), the old `runs/` folders are not on the new machine, and nothing here has been re-run yet. Experiments now run on the local GPU; Vast.ai only for runs that need more than 24 GB
 
 ## The question
 
@@ -158,7 +158,7 @@ All under the GADBench protocol with the official splits (`src/main_gadbench.py`
 
 | ID | Experiment | What it shows | Needs | Cost |
 | --- | --- | --- | --- | --- |
-| X1 | **Reference levels in the same code and splits**: MLP with the same encoder and head, XGBoost, XGB-Graph, RF-Graph | The lines every other result is read against. GADBench's published numbers are a first stand-in | an MLP flag in the driver; `xgboost` in `gnnenv` (not installed) or GADBench's own code | CPU, minutes |
+| X1 | **Reference levels in the same code and splits**: MLP with the same encoder and head, XGBoost, XGB-Graph, RF-Graph | The lines every other result is read against. GADBench's published numbers are a first stand-in | the MLP is `--variant none` in `main_gadbench.py` (built Nov 19); `xgboost` 2.0.3 is in `gcnenv`; the tree models are in `wsdm-2026/GADBench-master/` | CPU, minutes |
 | X2 | **Fixed-$\eta$ grid**, $\eta$ from 0 to 1 in steps of 0.125 (D1 of `experiment.md`), with the MLP line of X1 drawn in | Whether the operator helps at all, per dataset, and against which reference | a fixed-$\eta$ option in the driver | 9 sweeps |
 | X3 | **Node-wise lift by class**, per dataset and target, from the saved scores | Predicts, before training, where X2 can show a gain. The figure is the gain over $\eta=0$ against the mean lift of anomalies, one point per dataset | saved scores | minutes |
 | X4 | **Computed $\eta$ against the grid**: the $\eta$ of F1 against the best fixed $\eta$ of X2 | Whether F1 picks a good value without tuning | X2, saved scores | none extra |

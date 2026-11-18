@@ -7,15 +7,15 @@ Nov 17, 2026 · theory-first track verified Nov 18 · workspace moved Nov 19 (se
 | Item | State |
 | --- | --- |
 | GPU environment | `gcnenv` on this machine since Nov 19 (it replaces `gnnenv`); versions and smoke runs in "Workspace on this machine" |
-| GPU path, `--seed`, `--out` and AUPRC reporting in the ESO-GAD driver | done on the earlier machine (commit `85e68f9` on branch `icml2027` of the old `src`, not pushed). **Not in this workspace.** The source here has `--device` and reports AUPRC; `--seed` and `--out` are missing |
+| GPU path, `--seed`, `--out` and AUPRC reporting in the ESO-GAD driver | **rebuilt Nov 19** in `main_ec_sbwgnn.py` (also `--fix_eta`, `--eta_lr`). The Nov 17 commit `85e68f9` stayed on the earlier machine |
 | ESO-GAD on Amazon and YelpChi, seed 2, 500 epochs | done, but under the repository's protocol (40% labels, E2-only calibrator); not comparable with the paper's tables |
-| Synthetic checks of the theory | done: 27 of 27 pass (`theory_check.py`, in the same commit). **The script is not in this workspace**, so the checks cannot be re-run here until it is copied over or rewritten |
+| Synthetic checks of the theory | 27 of 27 passed on the earlier machine. **`theory_check.py` was rewritten on Nov 19** from the paper's statements; it now has 35 checks. Its full run (40 graphs) has not been done on this machine yet |
 | Oracle diagnostics on Amazon and YelpChi (`theory_check.py real`) | done: a preview of B3, B4, B7, C1, C2 and C4 with a stand-in calibrator |
 | Check of the theory-first track against the paper, the code and short local runs | done Nov 18: 14 problems found and corrected in this file; see "Verification of the track". Probe runs are in `runs/plan_check/` |
 | Theory in the paper | done: Section 5 and Appendix A. It contains no measured number yet |
-| GADBench protocol and the paper's calibrator in the source | done Nov 18 on the earlier machine (E0.1, E0.2 without soft imputation, E0.7), never committed: `gadbench.py`, `main_gadbench.py`, `edge_calibration.py`. **None of the three is in this workspace**; `edge_calibration.py` here is the WSDM-era file (targets on E2, plus E1 when `--lambda_p` is positive, class-weighted loss). The GADBench protocol runs here through the WSDM experiment code in `wsdm-2026/GADBench-master/` (untracked) |
+| GADBench protocol and the paper's calibrator in the source | **rebuilt Nov 19** from `BWGNN_codebase`: `gadbench.py`, `main_gadbench.py`, and the paper's rule, the soft target and exact overlap statistics in `edge_calibration.py` (E0.0–E0.2, E0.4, E0.5, E0.8). Tested for execution on a small synthetic graph only; **no run on a real dataset yet** (author, Nov 19: no experiments for now). See "Rebuilt on Nov 19" |
 | Everything in blocks A to G under the GADBench protocol | not started; the code for A1 exists, the rest waits for E0.4 and the decisions below |
-| Vast.ai | account ready (SSH key registered, \$9.82 of credit left after the DP0 rental, no billing method). The CLI was in `gnnenv`; it is not installed in `gcnenv`. Rules in "Budget" |
+| Vast.ai | **Not used for now (author, Nov 19): experiments run on the local GPU; Vast.ai only for runs that need more memory than its 24 GB.** Account ready (SSH key registered, \$9.82 of credit left after the DP0 rental, no billing method); the CLI is not installed in `gcnenv` |
 | Code repository | Since Nov 19 one repository holds everything: `/home/gnn/icml2027-esogad` (remote `git@github.com:cuongtv312/eso-gad-v1.git`), local branch `phase1`. Tracked: the ESO-GAD source `wsdm-2026/BWGNN_codebase/*.py`, `theory-phase1/` and the paper sources in `icml-paper/icml_ESO_GAD/`; everything else is ignored. Commits use the author's identity only and go to `phase1`. The old `src/` clone (branch `icml2027`) and `runs/` stayed on the earlier machine |
 
 Less than 1 of the 100 GPU-hours has been used.
@@ -26,15 +26,15 @@ The work moved to a new machine on Nov 19. In this file, `theory.md` and `learn_
 
 | Item | Here |
 | --- | --- |
-| Source | `wsdm-2026/BWGNN_codebase/`: `ec_sbwgnn.py`, `edge_calibration.py`, `main_ec_sbwgnn.py`, the three `run_*.py` sweeps, and BWGNN's own `BWGNN.py`, `dataset.py`, `main.py`. This is the WSDM-era code (Aug 12) under BWGNN's protocol (random stratified split by `--train_ratio`, selection by validation macro-F1) |
+| Source | `wsdm-2026/BWGNN_codebase/`, **the original code base of the WSDM paper** (author, Nov 19): `ec_sbwgnn.py`, `edge_calibration.py`, `main_ec_sbwgnn.py`, the three `run_*.py` sweeps, and BWGNN's own `BWGNN.py`, `dataset.py`, `main.py`, under BWGNN's protocol (random stratified split by `--train_ratio`, selection by validation macro-F1). The Phase 1 infrastructure was rebuilt on top of it on Nov 19 (next section) |
 | Data | `wsdm-2026/GADBench-master/datasets/` (override with `ESOGAD_DATA_DIR`). `dataset.py` now reads all seven graphs from there; `Dataset(name, source='dgl')` keeps BWGNN's original loaders |
 | Environment | conda `gcnenv`: Python 3.8.18, torch 2.0.1+cu117, dgl 0.9.1post1, scikit-learn 1.3.2, scipy 1.10.1, numpy 1.23.1, sympy 1.12, xgboost 2.0.3, pandas 2.0.3. No `vastai` |
 | GPU | one RTX 3090, 24 GB |
 | LaTeX | **the paper does not build here.** Only `texlive-base` and `texlive-latex-base` are installed; `microtype`, `booktabs`, `mathtools`, `cleveref`, `xcolor`, `caption`, `subcaption`, `multirow`, `dsfont`, `eso-pic`, `forloop` and `placeins` are missing and installing them needs root. `main.pdf` in the paper folder was built on the earlier machine |
 
-**Missing here, listed as done elsewhere in this file:** `theory_check.py`, `gadbench.py`, `main_gadbench.py`, `dp0_eta_check.py`, the Nov 18 version of `edge_calibration.py` (paper rule as default, `--edge_target`, `--edge_pos_weight`), the `--seed` and `--out` flags, and every `runs/` folder (`plan_check`, `dp0`, `flat_eta`, `gadbench`, `theory_real_*.json`). The numbers quoted from them cannot be re-derived on this machine. They have to be copied from the earlier machine or rebuilt before any item of the theory-first track can run here. This is the first open decision.
+**The Nov 14–18 code and outputs stayed on the earlier machine:** `theory_check.py`, `gadbench.py`, `main_gadbench.py`, `dp0_eta_check.py`, the Nov 18 version of `edge_calibration.py`, the `--seed` and `--out` flags, and every `runs/` folder (`plan_check`, `dp0`, `flat_eta`, `gadbench`, `theory_real_*.json`). The author decided on Nov 19 to rebuild from `BWGNN_codebase`; the code is rebuilt (next section). **The numbers quoted from the old runs are not reproduced yet**: every result in this file, `theory.md` and `learn_eta_vs_fixed_eta.md` dated Nov 14–18 is from the earlier machine and has to be re-run with the rebuilt code before it is used.
 
-**Found here: the code behind the WSDM tables.** It is in `wsdm-2026/GADBench-master/` (third-party benchmark folder, not tracked): the `ECHOGAD` detector in `models/detector.py` and `models/gnn.py`, the drivers `echogad_*.py`, `rq2_*.py`, `rq3_*.py` and `runtime_*.py`. This closes point 1 of "Five things to settle" below. Read from that code on Nov 19:
+**Found here: the runs behind the WSDM tables.** `BWGNN_codebase` is the original code base. The tables were produced under the GADBench protocol by its port in `wsdm-2026/GADBench-master/` (third-party benchmark folder, not tracked): the `ECHOGAD` detector in `models/detector.py` and `models/gnn.py`, the drivers `echogad_*.py`, `rq2_*.py`, `rq3_*.py` and `runtime_*.py`. This closes point 1 of "Five things to settle" below. Read from that code on Nov 19:
 
 - **Protocol.** GADBench's own: mask columns 10–19, at most 200 epochs, patience 50 on validation AUPRC, Adam at 0.01, class-weighted cross-entropy, seeds 3407 + 10 × trial. It matches the "Protocol" section.
 - **Graph.** The GADBench files as shipped, with `add_self_loop(remove_self_loop(·))`. Weibo, Tolokers and Questions are stored directed and were **not symmetrized**; the other four are symmetric. All seven files already contain one self-loop per node and no parallel edges. This answers the question raised under the E0 smoke runs.
@@ -57,7 +57,38 @@ The work moved to a new machine on Nov 19. In this file, `theory.md` and `learn_
 
 - Phase 1 used 30 calibrator epochs per fold; the default is 150. At 40% labels the calibrator trains on millions of edges, so Phase 1 times and memory are far above the 100-label numbers in the E0 table.
 - The original BWGNN driver (`main.py`, homogeneous and heterogeneous) and `run_weak_edge_confirmation.py` also run.
-- **The local GPU is now the card the rental rules name.** T-Finance fits (16.2 GB at 40% labels). Whether experiments over 5 minutes still go to Vast.ai is the author's rule to change; the "Budget" section is left as written.
+- **The local GPU is now the card the rental rules name**, and T-Finance fits (16.2 GB at 40% labels). **Author, Nov 19: experiments run on the local GPU; Vast.ai is kept for runs that need more than its 24 GB.**
+
+## Rebuilt on Nov 19
+
+Everything below is in `wsdm-2026/BWGNN_codebase/` and tracked. **It was tested for execution only**, on a 400-node synthetic graph on the CPU (every option of the driver, the three analysis scripts, and a 6-graph pass of `theory_check.py synthetic`). **No experiment has been run with it** (author, Nov 19). Outputs go to `output/phase1/` (untracked), which replaces the old `runs/`.
+
+| File | Content | Replaces |
+| --- | --- | --- |
+| `gadbench.py` | The GADBench protocol: graph files with one self-loop per node, the shipped splits (columns 10–19), seeds 3407 + 10 × trial, AUROC / AUPRC / Rec@K, random draws of a GADBench-style labeled set, the mask of nodes with a known label. **Weibo, Tolokers and Questions are symmetrized by default**; `--no_symmetrize` keeps them as the WSDM runs used them | E0.1 |
+| `main_gadbench.py` | Driver: Phase 1, then Phase 2 with at most 200 epochs and patience 50 on validation AUPRC. Options: fixed $\eta$ (`--fix_eta --eta_init`), $\eta\in[0,\eta_{\max}]$ (`--eta_max`), a separate learning rate for $\eta$, `--variant sign / reweight / prune / none` (`none` is the feature-only network with the same encoder and head), `--q_mode calibrated / oracle / shuffled / flipped / product`, `--oracle_flip`, uniform gate, `--save_q`, `--analyze` (score diagnostics with all labels), `--out` (one JSON line per trial) | E0.1, E0.4, E0.5 |
+| `edge_calibration.py` | Added to the original file, whose defaults are unchanged: `edge_target='e2'`, `'e1e2'` (the rule of Section 4.1: one loss over $\mathcal E_2\cup\mathcal E_1$) and `'soft'` (unlabeled endpoint imputed by a cross-fitted feature-only node posterior); `pos_weight=False` (the paper's unweighted loss); `train_on_self_loops=False`; exact Salton and Jaccard above the 5M-edge guard, in chunks on the GPU (`exact_overlap`). `main_gadbench.py` uses the paper's rule, unweighted, without self-loops, by default; `--edge_target legacy --lambda_p … --edge_pos_weight 1 --train_on_self_loops 1` gives the original calibrator | E0.2, E0.8 |
+| `ec_sbwgnn.py` | Fixed or learned $\eta$, $\eta_{\max}$, the weight variants, a uniform gate, evaluation of a trained model under another $\eta$ or other scores (for C12), the encoder output (for C9, C13). The powers $L_\eta^jH^{(0)}$ are now shared across channels (item F1 of block F): $P$ sparse products per forward pass in place of $(P+1)P$, same output | E0.4, F1 |
+| `main_ec_sbwgnn.py` | `--seed`, `--out`, `--fix_eta`, `--eta_lr` (for the 40%-label runs of `plan_check`) | E0.0 |
+| `diagnostics.py` | Score-level quantities with all labels: frustration and label frequency (Theorem 2), its minimiser over $\eta$, reliability slope and curve, edge AUROC / AUPRC / Brier / calibration error and mean score by edge type, $\tilde h_u$, margin, effective degree and node factor $\chi_u$ (Theorem 3), node-wise lift and the first-order term of Theorem 3(d) | the analysis parts of `theory_check.py real` and of the `runs/flat_eta` script |
+| `theory_check.py` | `synthetic`: 35 checks on random two-class graphs (every statement of Section 5 except Proposition 3, plus the identity $\sum_k\mathcal W_k=\frac{P+1}{2}I$ of N9). `real --dataset …`: the oracle facts of B7 and the three stand-in calibrators (E2 only, the paper's rule, E1+E2 with true labels) under 100 labels | `theory_check.py` |
+| `dp0_eta_check.py` | DP0: learned $\eta$ from starts 0.2 / 0.5 / 0.8 without early stopping, the fixed-$\eta$ grid in steps of 0.125, slope and label-frequency minimiser, with a `--summarize` mode | `dp0_eta_check.py` |
+| `flat_eta_check.py` | The two diagnostics "Why the loss is flat in $\eta$" and "What would remove the flat region": $\chi_u$ by $\eta$, lift, weights at $\eta=1$, oracle signing and pruning, and the paper / soft / product targets next to the feature-only references | the scripts of `runs/flat_eta` |
+
+Three things differ from what the Nov 14–18 text describes and matter when the numbers are compared:
+
+- **Not the same script, so not the same numbers.** The old `theory_check.py` had 27 checks and gave the ratios quoted in Appendix A of the paper (0.16, 0.06, 0.06). The rewritten one has 35 and will give other ratios; `proof.tex` has to be updated from its full run.
+- **Definitions fixed here.** The reliability slope is the least-squares slope through the origin of the true heterophily indicator on the score, $\sum\hat qt^\star/\sum\hat q^2$. On Amazon every quantity that uses all labels is computed on the subgraph of the 8,639 labeled nodes (the first 3,305 nodes have no label). With these two conventions the oracle facts quoted in `theory.md` for Amazon and YelpChi are reproduced exactly (checked on Nov 19 from the graph files, no training involved).
+- **The calibrator default of `main_gadbench.py` is the paper's rule, not the WSDM code's.** The WSDM runs used the class-weighted loss, trained on self-loops, weighted $\mathcal E_1$ by `lambda_p` and did not symmetrize; each of these is one flag.
+
+Order in which the old results have to be re-run before anything new (all local, minutes each except the last two):
+
+1. `python theory_check.py synthetic`, then update the ratios in `proof.tex` and the check count in `theory.md`.
+2. `python theory_check.py real --dataset amazon` and `--dataset yelp` (replaces `runs/theory_real_*.json`).
+3. `python main_gadbench.py --dataset all --trials 0` (the E0 smoke table).
+4. `python dp0_eta_check.py --datasets amazon,yelp --out …` (DP0; 34 minutes on a rented 3090 on Nov 18).
+5. `python flat_eta_check.py --datasets amazon,yelp --out_dir …` (the two diagnostics).
+6. The 18 runs of `plan_check` with `main_ec_sbwgnn.py` (40% labels, three starts, two learning rates).
 
 ## Summary
 
@@ -164,8 +195,8 @@ These are the experiments to run before anything else. Each one either checks a 
 
 ### Two stages
 
-1. **Stage T1, local, no rental.** Amazon and YelpChi, labeled sets drawn like GADBench's (20 anomalies and 80 normal nodes, several draws), as `theory_check.py real` already does. Everything marked *scores* or *labels only* can run now by extending that script. The *encoder* and *training* items need E0.4 (fixed $\eta$, operator variants, score transforms) and a hook that saves the encoder output. T1 steers the theory and is the local test that the rental rule requires; its numbers do not go into the paper.
-2. **Stage T2, seven datasets, official splits.** Needs E0.1 and the five other datasets. The *scores* items stay local (minutes). The training sweeps are the rental batches V1 to V4 in "Budget".
+1. **Stage T1, local.** Amazon and YelpChi, labeled sets drawn like GADBench's (20 anomalies and 80 normal nodes, several draws), as `theory_check.py real` already does. Everything marked *scores* or *labels only* can run now by extending that script. The *encoder* and *training* items need E0.4 (fixed $\eta$, operator variants, score transforms) and a hook that saves the encoder output. T1 steers the theory and is the local test that the rental rule requires; its numbers do not go into the paper.
+2. **Stage T2, seven datasets, official splits.** Needs E0.1 and the five other datasets. The *scores* items take minutes. The training sweeps are the batches V1 to V4 in "Budget", run locally since Nov 19.
 
 Estimated training cost of the whole track on seven datasets and 10 splits: 20 sweeps (D1: 5; the default run from starts 0.2, 0.5 and 0.8: 3; D3: pruning at three thresholds, oracle signing, oracle pruning: 5; D9: 1; C15: 1; C6: 3; C14: 2), about 10 GPU-hours at the local speed. The count was corrected on Nov 18 (next section). D2, D4 and D5 are not in it: they stay in steps 3 and 4 of the order of work, so DP1 and the target comparison of C20 close only there.
 
@@ -316,7 +347,7 @@ Theory additions these point to are listed in `theory.md` as N8 to N10. The whol
 
 ## E0. Infrastructure
 
-E0.1, E0.2 (without soft imputation) and E0.7 were done on Nov 18 on the earlier machine; the rest is open. Nothing was committed, and **the files of E0.0 to E0.2 are not in this workspace** (see "Workspace on this machine"). E0.7 is in place here.
+E0.1, E0.2 (without soft imputation) and E0.7 were done on Nov 18 on the earlier machine and never committed. **On Nov 19 E0.0, E0.1, E0.2 (now with soft imputation), E0.4, E0.5 and E0.8 were rebuilt in `wsdm-2026/BWGNN_codebase/`** (see "Rebuilt on Nov 19"); they are code-tested on a synthetic graph and not yet run on real data. E0.3 and E0.6 are open. The notes in the table are the Nov 17–18 record.
 
 | ID | Task | Notes |
 | --- | --- | --- |
@@ -324,11 +355,11 @@ E0.1, E0.2 (without soft imputation) and E0.7 were done on Nov 18 on the earlier
 | E0.1 | GADBench protocol in `src/` | **Done Nov 18.** `gadbench.py` (loader, splits, seeds, scores) and `main_gadbench.py` (ESO-GAD driver with early stopping). Smoke results below |
 | E0.2 | Calibrator targets: E2 only, E1+E2 modal (paper), E1+E2 soft imputation | **Paper rule done Nov 18** and now the default of `cross_fitted_edge_calibration`: targets on $\mathcal E_2\cup\mathcal E_1$, folds by node, unweighted BCE + Brier, self-loops not trained on. `--edge_target e2` and `--edge_pos_weight 1` give the old behaviour. Soft imputation is still open |
 | E0.3 | Cross-fitting as Section 4.1 describes it, and the pair-excluded variant of Proposition 3 | 10 fold models for $K=5$ in the pair-excluded variant |
-| E0.4 | Operator variants behind one flag: signed, reweight, prune, fixed $\eta$, $\eta\in[0,2]$, shuffled $\hat q$, oracle $\hat q$ | |
-| E0.5 | Save $\hat q$ per dataset and split | Blocks B and C read it; no retraining |
+| E0.4 | Operator variants behind one flag: signed, reweight, prune, fixed $\eta$, $\eta\in[0,2]$, shuffled $\hat q$, oracle $\hat q$ | **Built Nov 19** in `main_gadbench.py`: `--variant`, `--fix_eta`, `--eta_max`, `--q_mode`, `--oracle_flip` |
+| E0.5 | Save $\hat q$ per dataset and split | Blocks B and C read it; no retraining. **Built Nov 19**: `--save_q` |
 | E0.6 | Regression check: reproduce the WSDM rows for BWGNN and ESO-GAD within one standard deviation | **Moved to the second project phase** (author, Nov 18) with the rest of the main experiments |
 | E0.7 | Datasets | **Done.** On this machine the seven GADBench files are in `wsdm-2026/GADBench-master/datasets/` (untracked), with Elliptic next to them, and `dataset.py` reads them from there. T-Social is only a zip in `wsdm-2026/BWGNN_codebase/dataset/`, not extracted |
-| E0.8 | Overlap statistics above 5M edges | The current driver silently zeroes Salton and Jaccard on Amazon, YelpChi and T-Finance. Compute them in chunks |
+| E0.8 | Overlap statistics above 5M edges | The current driver silently zeroes Salton and Jaccard on Amazon, YelpChi and T-Finance. Compute them in chunks. **Built Nov 19**: `--exact_overlap` (off by default, so the default still matches the WSDM runs); equal to the sparse product on a test graph, not yet timed on the three large graphs |
 
 **Smoke runs of `main_gadbench.py` (Nov 18, split 0 only, default configuration, the earlier machine's 4060 Ti; the Nov 19 smoke runs on this machine are in "Workspace on this machine").** One trial is not a result; the last column is only there to show the code runs in the right range.
 
@@ -486,6 +517,8 @@ One sweep is one method on seven datasets and 10 splits. The estimates below ass
 The theory-first track is about 10 GPU-hours of training (part of the D and C rows) plus the score-only analyses. Used so far: less than 1, the 10 minutes of the Nov 18 probe runs included.
 
 ### Vast.ai rentals
+
+**Changed by the author on Nov 19: experiments run on the local GPU (RTX 3090, 24 GB). Vast.ai is used only for runs that need more GPU memory than that** (T-Social, and DGraph-Fin if the local memory test fails). Rules 1 to 4 below, the batch sheet and the planned batches V1 to V4 are therefore suspended: V1 to V4 become local sweeps in the same order, and the 100 GPU-hour budget counts local hours. The text is kept as the record and for the large-memory rentals, where rule 3 (the author approves each rental) still applies.
 
 Rules from the author (Nov 17):
 

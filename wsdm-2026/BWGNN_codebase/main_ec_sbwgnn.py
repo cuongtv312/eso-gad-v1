@@ -1,4 +1,5 @@
 import argparse
+import json
 import time
 
 import numpy
@@ -28,6 +29,12 @@ def train(g, args, return_dict=False):
     index = list(range(len(labels_cpu)))
     if dataset_name == 'amazon':
         index = list(range(3305, len(labels_cpu)))
+
+    seed = getattr(args, 'seed', None)
+    if seed is not None:
+        numpy.random.seed(seed)
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
 
     idx_train, idx_rest, y_train, y_rest = train_test_split(index, labels_cpu[index], stratify=labels_cpu[index],
                                                               train_size=args.train_ratio,
@@ -60,15 +67,22 @@ def train(g, args, return_dict=False):
         edge_diag.get('num_trained_folds'), args.edge_folds,
         edge_diag.get('num_E_LL'), edge_diag.get('num_E_LU'),
         {k: round(v, 4) for k, v in edge_diag.items()
-         if k not in ('num_trained_folds', 'num_E_LL', 'num_E_LU', 'lambda_p', 'oracle_lu')}))
+         if isinstance(v, float) and k != 'lambda_p'}))
     print('cross-fitting time cost: {:.2f}s'.format(edge_cf_time))
 
     in_feats = features.shape[1]
     num_classes = 2
     model = EC_SBWGNN(in_feats, args.hid_dim, num_classes, g, q_calibrated,
-                       d=args.order, eta_init=args.eta_init).to(device)
+                       d=args.order, eta_init=args.eta_init,
+                       learn_eta=not getattr(args, 'fix_eta', False)).to(device)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
+    eta_lr = getattr(args, 'eta_lr', None)
+    if eta_lr is not None and model.learn_eta:
+        optimizer = torch.optim.Adam([
+            {'params': [p for n, p in model.named_parameters() if n != 'eta_raw'], 'lr': 0.01},
+            {'params': [model.eta_raw], 'lr': eta_lr}])
+    else:
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
     best_f1 = 0.
     final_trec, final_tpre, final_tmf1, final_tauc, final_tap = 0., 0., 0., 0., 0.
 
@@ -124,6 +138,18 @@ def train(g, args, return_dict=False):
     print('final channel gate g: {}'.format([round(v, 4) for v in diag['gate'].tolist()]))
     print('final channel energy ||B_k H^(0)||_F^2: {}'.format([round(v, 2) for v in diag['channel_energy'].tolist()]))
 
+    out_path = getattr(args, 'out', None)
+    if out_path:
+        with open(out_path, 'a') as f:
+            f.write(json.dumps({
+                'dataset': dataset_name, 'train_ratio': args.train_ratio, 'epoch': args.epoch, 'seed': seed,
+                'eta_init': args.eta_init, 'eta_lr': eta_lr, 'fix_eta': getattr(args, 'fix_eta', False),
+                'lambda_p': args.lambda_p, 'test_auroc': final_tauc, 'test_auprc': final_tap,
+                'test_mf1': final_tmf1, 'eta': diag['eta'].item(), 'r_minus': diag['r_minus'].item(),
+                'gate': diag['gate'].tolist(), 'final_node_loss': node_loss.item(),
+                'edge': {k: v for k, v in edge_diag.items() if isinstance(v, (int, float, bool))},
+                'edge_cf_time_s': edge_cf_time, 'node_train_time_s': node_train_time}) + '\n')
+
     if not return_dict:
         return final_tmf1, final_tauc
 
@@ -166,6 +192,11 @@ if __name__ == '__main__':
     parser.add_argument("--max_edges_cn", type=int, default=5_000_000,
                         help="Skip exact common-neighbor structural stats above this many edges")
     parser.add_argument("--eta_init", type=float, default=0.5, help="Initial global calibration strength eta")
+    parser.add_argument("--fix_eta", action="store_true", help="Keep eta fixed at --eta_init")
+    parser.add_argument("--eta_lr", type=float, default=None,
+                        help="Separate learning rate for eta (default: the model's 0.01)")
+    parser.add_argument("--seed", type=int, default=None, help="Seed for model init (the split keeps its own fixed seed)")
+    parser.add_argument("--out", type=str, default=None, help="Append one JSON line with the run's result to this file")
     parser.add_argument("--lambda_g", type=float, default=0.01, help="Weight of the gate KL regularizer")
 
     parser.add_argument("--lambda_p", type=float, default=0.0,

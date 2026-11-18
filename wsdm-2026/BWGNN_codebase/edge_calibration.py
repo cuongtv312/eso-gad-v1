@@ -69,7 +69,33 @@ class EdgeHeterophilyPredictor(nn.Module):
         return self.mlp(z).squeeze(-1)  # logits, shape [num_edges]
 
 
-def compute_structural_stats(graph, max_edges_for_common_neighbors=5_000_000):
+@torch.no_grad()
+def common_neighbors_chunked(src, dst, n, device, chunk=2048):
+    """Exact (A @ A)[u, v] for every edge (u, v), in row chunks on `device`:
+    one sparse-times-dense product per chunk, so memory is O(chunk * n) and
+    never the full, nearly dense A @ A. Used above the size guard of
+    compute_structural_stats."""
+    src_d, dst_d = src.to(device), dst.to(device)
+    A_t = torch.sparse_coo_tensor(torch.stack([dst_d, src_d]),
+                                  torch.ones(src_d.shape[0], device=device), (n, n)).coalesce()
+    order = torch.argsort(src_d)
+    src_s, dst_s = src_d[order], dst_d[order]
+    bounds = torch.searchsorted(src_s, torch.arange(0, n + chunk, chunk, device=device))
+    cn = torch.zeros(src_d.shape[0], device=device)
+    for i in range(bounds.shape[0] - 1):
+        lo, hi = int(bounds[i]), int(bounds[i + 1])
+        if lo == hi:
+            continue
+        r0 = i * chunk
+        rows = min(chunk, n - r0)
+        dense = torch.zeros(n, rows, device=device)            # A[r0:r0+rows, :]^T
+        dense[dst_s[lo:hi], src_s[lo:hi] - r0] = 1.0
+        prod = torch.sparse.mm(A_t, dense)                     # (A[rows] @ A)^T, shape [n, rows]
+        cn[order[lo:hi]] = prod[dst_s[lo:hi], src_s[lo:hi] - r0]
+    return cn.cpu()
+
+
+def compute_structural_stats(graph, max_edges_for_common_neighbors=5_000_000, exact_overlap_device=None):
     """Label-free, symmetric structural edge statistics r_uv.
 
     r_uv = [log-degree sum, |log-degree difference|, Salton index, Jaccard index].
@@ -78,6 +104,10 @@ def compute_structural_stats(graph, max_edges_for_common_neighbors=5_000_000):
     `max_edges_for_common_neighbors` they are skipped and left at zero, keeping
     only the cheap degree-based statistics. This mirrors the note's own
     complexity discussion (Sec 2.3) rather than silently failing.
+
+    exact_overlap_device: if given, graphs above the guard get the exact
+    overlap statistics from common_neighbors_chunked on that device instead
+    of zeros.
     """
     src, dst = graph.edges()
     n = graph.num_nodes()
@@ -101,6 +131,10 @@ def compute_structural_stats(graph, max_edges_for_common_neighbors=5_000_000):
         jaccard = cn_vals / union
         salton_t = torch.tensor(salton, dtype=torch.float32).unsqueeze(-1)
         jaccard_t = torch.tensor(jaccard, dtype=torch.float32).unsqueeze(-1)
+    elif exact_overlap_device is not None:
+        cn = common_neighbors_chunked(src, dst, n, exact_overlap_device)
+        salton_t = (cn / (deg[src] * deg[dst]).clamp(min=1e-12).sqrt()).unsqueeze(-1)
+        jaccard_t = (cn / (deg[src] + deg[dst] - cn).clamp(min=1.0)).unsqueeze(-1)
     else:
         salton_t = torch.zeros(num_edges, 1)
         jaccard_t = torch.zeros(num_edges, 1)
@@ -162,7 +196,7 @@ def _pos_weight(t):
 
 
 def _train_fold_predictor(z, t, eligible, feat_dim, struct_dim, hidden_dim, epochs, lr, weight_decay,
-                           z_lu=None, t_lu=None, eligible_lu=None, lambda_p=0.0):
+                           z_lu=None, t_lu=None, eligible_lu=None, lambda_p=0.0, use_pos_weight=True):
     """Trains one fold's q_psi. With lambda_p=0 (default) this is exactly
     the original E_LL-only objective. With lambda_p>0 and a non-empty
     eligible_lu mask, adds the separately-normalized pseudo-supervision
@@ -175,17 +209,20 @@ def _train_fold_predictor(z, t, eligible, feat_dim, struct_dim, hidden_dim, epoc
     separately" requirement -- pseudo edges being far more numerous than
     exact edges cannot dominate simply by outnumbering them, since each sum
     is divided by its own edge count before lambda_p is applied.
+
+    use_pos_weight=False drops the class weight from the BCE terms, which is
+    the loss the paper writes (BCE + Brier). Targets may be soft (in [0,1]).
     """
     model = EdgeHeterophilyPredictor(feat_dim, struct_dim, hidden_dim).to(z.device)
     opt = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
     z_ll, t_ll = z[eligible], t[eligible]
-    pos_weight_ll = _pos_weight(t_ll)
+    pos_weight_ll = _pos_weight(t_ll) if use_pos_weight else None
 
     use_lu = lambda_p > 0 and eligible_lu is not None and eligible_lu.sum().item() > 0
     if use_lu:
         z_lu_e, t_lu_e = z_lu[eligible_lu], t_lu[eligible_lu]
-        pos_weight_lu = _pos_weight(t_lu_e)
+        pos_weight_lu = _pos_weight(t_lu_e) if use_pos_weight else None
 
     for _ in range(epochs):
         model.train()
@@ -222,10 +259,58 @@ def build_pseudo_lu_targets(labels, u_labeled, v_labeled, src, dst):
     return torch.where(u_labeled, labels_src, labels_dst)
 
 
+def cross_fitted_node_posterior(feat, labels, train_mask, fold_of, k, hidden_dim=64, epochs=200,
+                                lr=1e-2, weight_decay=1e-4, device=None):
+    """Feature-only node posterior pi_v = Pr[y_v = 1 | x_v], cross-fitted with
+    the same node folds as the edge calibrator: model j is trained on the
+    labeled nodes outside fold j (unweighted BCE on standardized features).
+
+    Returns (pi_folds [K, n], pi_oof [n]): pi_oof is the out-of-fold value for
+    a labeled node (the model that never saw its label) and the mean of the K
+    models for an unlabeled node. A fold whose training nodes are all of one
+    class falls back to the training base rate.
+    """
+    if device is None:
+        device = feat.device
+    x = feat.detach().float().to(device)
+    x = (x - x.mean(0, keepdim=True)) / x.std(0, keepdim=True).clamp(min=1e-6)
+    y = labels.detach().float().to(device)
+    fold = fold_of.to(device)
+    labeled = train_mask.to(device)
+    n = x.shape[0]
+    pi_folds = torch.zeros(k, n, device=device)
+    for j in range(k):
+        tr = labeled & (fold != j)
+        if tr.sum().item() == 0:
+            pi_folds[j] = y[labeled].mean() if labeled.any() else 0.0
+            continue
+        if y[tr].unique().numel() < 2:
+            pi_folds[j] = y[tr].mean()
+            continue
+        model = nn.Sequential(nn.Linear(x.shape[1], hidden_dim), nn.ReLU(),
+                              nn.Linear(hidden_dim, hidden_dim), nn.ReLU(),
+                              nn.Linear(hidden_dim, 1)).to(device)
+        opt = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+        for _ in range(epochs):
+            opt.zero_grad()
+            F.binary_cross_entropy_with_logits(model(x[tr]).squeeze(-1), y[tr]).backward()
+            opt.step()
+        with torch.no_grad():
+            pi_folds[j] = torch.sigmoid(model(x).squeeze(-1))
+    own = fold.clamp(min=0).unsqueeze(0)
+    pi_oof = torch.where(labeled, pi_folds.gather(0, own).squeeze(0), pi_folds.mean(0))
+    return pi_folds, pi_oof
+
+
+EDGE_TARGETS = ('e2', 'e1e2', 'soft')
+
+
 def cross_fitted_edge_calibration(graph, feat, labels, train_mask, k=5, hidden_dim=32,
                                    epochs=150, lr=1e-2, weight_decay=1e-5, seed=2,
                                    max_edges_for_common_neighbors=5_000_000,
-                                   lambda_p=0.0, oracle_lu=False, device=None):
+                                   lambda_p=0.0, oracle_lu=False, device=None,
+                                   edge_target=None, pos_weight=True, train_on_self_loops=True,
+                                   exact_overlap=False, return_extras=False):
     """Runs Algorithm 1 steps 1-3 and returns a frozen, per-edge calibrated
     heterophily probability tensor q (shape [num_edges], no grad), plus a
     diagnostics dict for reporting edge-calibration quality (Sec 5, G1/G2).
@@ -249,7 +334,29 @@ def cross_fitted_edge_calibration(graph, feat, labels, train_mask, k=5, hidden_d
     of `device` (a one-time, comparatively cheap cost); only the tensors
     that feed the repeated per-epoch MLP forward/backward passes are moved
     to `device`. Defaults to `feat`'s own device if not given.
+
+    edge_target selects the training set and target of each fold model:
+        None   : the original code path above, driven by lambda_p (E_LL, plus
+                 lambda_p times a separately averaged E_LU term).
+        'e2'   : doubly-labeled edges only.
+        'e1e2' : the rule of the paper (Sec. 4.1): one loss over E_2 and E_1
+                 together, with the modal target t = y_labeled on E_1.
+        'soft' : as 'e1e2', with the unlabeled endpoint imputed by a
+                 cross-fitted feature-only node posterior pi_v:
+                 t = y_u (1 - pi_v) + (1 - y_u) pi_v.
+    With 'e1e2', oracle_lu=True puts the true hidden edge label on E_1 (the
+    analysis-only ceiling of the target comparison).
+    pos_weight=False drops the class weight of the BCE term (the paper's loss).
+    train_on_self_loops=False keeps self-loops (whose score is fixed to 0
+    anyway) out of the training edges; at 100 labels they would otherwise
+    outnumber the real doubly-labeled edges.
+    exact_overlap=True computes Salton/Jaccard exactly above the size guard
+    (on `device`) instead of leaving them at zero.
+    return_extras=True also returns a dict with the fold assignment, the
+    out-of-fold node posterior (for 'soft') and the edge masks.
     """
+    if edge_target is not None and edge_target not in EDGE_TARGETS:
+        raise ValueError('unknown edge_target {!r}'.format(edge_target))
     if device is None:
         device = feat.device
     graph_cpu = graph.to('cpu') if graph.device.type != 'cpu' else graph
@@ -257,7 +364,8 @@ def cross_fitted_edge_calibration(graph, feat, labels, train_mask, k=5, hidden_d
     labels_cpu = labels.detach().cpu()
     train_mask_cpu = train_mask.detach().cpu()
 
-    struct = compute_structural_stats(graph_cpu, max_edges_for_common_neighbors)
+    struct = compute_structural_stats(graph_cpu, max_edges_for_common_neighbors,
+                                      exact_overlap_device=device if exact_overlap else None)
     z = build_edge_descriptors(graph_cpu, feat_cpu, struct)
     src, dst = graph_cpu.edges()
     self_loop_mask = src == dst
@@ -268,6 +376,7 @@ def cross_fitted_edge_calibration(graph, feat, labels, train_mask, k=5, hidden_d
     v_labeled = fv >= 0
     both_labeled = u_labeled & v_labeled          # E_LL
     exactly_one_labeled = u_labeled ^ v_labeled    # E_LU
+    trainable_ll = both_labeled if train_on_self_loops else (both_labeled & ~self_loop_mask)
 
     t = (labels_cpu[src] != labels_cpu[dst]).float()  # exact target, valid for any edge
     if oracle_lu:
@@ -285,9 +394,17 @@ def cross_fitted_edge_calibration(graph, feat, labels, train_mask, k=5, hidden_d
     t_dev = t.to(device)
     t_lu_dev = t_lu_target.to(device)
     fu_dev, fv_dev = fu.to(device), fv.to(device)
-    both_labeled_dev = both_labeled.to(device)
+    both_labeled_dev = trainable_ll.to(device)
     exactly_one_labeled_dev = exactly_one_labeled.to(device)
     labeled_fold_dev = labeled_fold.to(device)
+
+    pi_folds, pi_oof = None, None
+    if edge_target == 'soft':
+        pi_folds, pi_oof = cross_fitted_node_posterior(feat_cpu, labels_cpu, train_mask_cpu, fold_of, k, device=device)
+        src_dev, dst_dev = src.to(device), dst.to(device)
+        u_labeled_dev = u_labeled.to(device)
+        y_lab_dev = torch.where(u_labeled, labels_cpu[src], labels_cpu[dst]).float().to(device)
+        unl_dev = torch.where(u_labeled_dev, dst_dev, src_dev)   # the unlabeled endpoint of an E_LU edge
 
     models = [None] * k
     for j in range(k):
@@ -297,11 +414,31 @@ def cross_fitted_edge_calibration(graph, feat, labels, train_mask, k=5, hidden_d
         # labeled node u in the held-out fold j, exactly as for E_LL.
         eligible_lu = exactly_one_labeled_dev & (labeled_fold_dev != j)
 
+        if edge_target in ('e1e2', 'soft'):
+            # One loss over E_2 and E_1 together. Fold model j never sees a
+            # label (or, for 'soft', a node posterior fitted on a label) of
+            # fold j.
+            pooled = eligible_ll | eligible_lu
+            if edge_target == 'soft':
+                pi_unl = pi_folds[j][unl_dev]
+                t_lu_j = y_lab_dev * (1.0 - pi_unl) + (1.0 - y_lab_dev) * pi_unl
+            else:
+                t_lu_j = t_lu_dev
+            t_pool = torch.where(both_labeled_dev, t_dev, t_lu_j)
+            hard = (t_pool[pooled] > 0.5)
+            if pooled.sum().item() < 4 or hard.all().item() or (~hard).all().item():
+                continue
+            models[j] = _train_fold_predictor(
+                z_dev, t_pool, pooled, feat.shape[1], struct.shape[1], hidden_dim, epochs, lr, weight_decay,
+                use_pos_weight=pos_weight)
+            continue
+
         if eligible_ll.sum().item() < 4 or t_dev[eligible_ll].sum().item() == 0 or (~t_dev[eligible_ll].bool()).sum().item() == 0:
             continue
         models[j] = _train_fold_predictor(
             z_dev, t_dev, eligible_ll, feat.shape[1], struct.shape[1], hidden_dim, epochs, lr, weight_decay,
-            z_lu=z_dev, t_lu=t_lu_dev, eligible_lu=eligible_lu, lambda_p=lambda_p)
+            z_lu=z_dev, t_lu=t_lu_dev, eligible_lu=eligible_lu,
+            lambda_p=0.0 if edge_target == 'e2' else lambda_p, use_pos_weight=pos_weight)
 
     with torch.no_grad():
         E = z_dev.shape[0]
@@ -326,11 +463,13 @@ def cross_fitted_edge_calibration(graph, feat, labels, train_mask, k=5, hidden_d
         q_cpu = symmetrize_edge_values(graph_cpu, q.cpu())  # graph structural query (edge_ids) is CPU-only
         q = q_cpu.to(device).clamp(0.0, 1.0)
 
-    diagnostics = evaluate_edge_calibration(q_cpu.clamp(0.0, 1.0), t, both_labeled)
+    diagnostics = evaluate_edge_calibration(q_cpu.clamp(0.0, 1.0), t, trainable_ll)
     diagnostics['num_trained_folds'] = sum(m is not None for m in models)
-    diagnostics['num_E_LL'] = int(both_labeled.sum().item())
+    diagnostics['num_E_LL'] = int(trainable_ll.sum().item())
     diagnostics['num_E_LU'] = int(exactly_one_labeled.sum().item())
-    diagnostics['num_E_LL_hetero'] = int(t[both_labeled].sum().item())  # |E_LL^hetero|: true-heterophilic among E_LL
+    diagnostics['num_E_LL_hetero'] = int(t[trainable_ll].sum().item())  # |E_LL^hetero|: true-heterophilic among E_LL
+    diagnostics['edge_target'] = edge_target
+    diagnostics['pos_weight'] = pos_weight
     diagnostics['lambda_p'] = lambda_p
     diagnostics['oracle_lu'] = oracle_lu
 
@@ -350,6 +489,10 @@ def cross_fitted_edge_calibration(graph, feat, labels, train_mask, k=5, hidden_d
         diagnostics['num_E_LU_anomaly_related'] = int(anomaly_related_mask.sum().item())
         if anomaly_related_mask.sum().item() > 0:
             diagnostics['pseudo_lu_accuracy_anomaly_related'] = float(correct[anomaly_related_mask].mean().item())
+    if return_extras:
+        extras = {'fold_of': fold_of, 'pi_oof': None if pi_oof is None else pi_oof.cpu(),
+                  'both_labeled': both_labeled, 'exactly_one_labeled': exactly_one_labeled}
+        return q, diagnostics, extras
     return q, diagnostics
 
 

@@ -28,7 +28,10 @@ import dgl.function as fn
 from BWGNN import calculate_theta2
 
 
-def build_signed_normalized_weight(graph, q, eta, self_loop_mask):
+VARIANTS = ('sign', 'reweight', 'prune', 'none')
+
+
+def build_signed_normalized_weight(graph, q, eta, self_loop_mask, variant='sign', tau=None):
     """Constructs the per-edge normalized signed weight
 
         w_norm[u,v] = W^(eta)_uv / sqrt(D^(eta)_u D^(eta)_v),  W^(eta)_uv = (1-eta) + eta*(1-2q_uv),
@@ -38,10 +41,31 @@ def build_signed_normalized_weight(graph, q, eta, self_loop_mask):
     never enter the sum, so the A_uv factor from the note is implicit here
     rather than multiplied explicitly). q is treated as a constant (frozen
     after cross-fitting); eta is the only differentiable quantity entering W.
+
+    variant selects the map from the same frozen q to the edge weight, with
+    everything else shared (the sign / reweight / prune comparison):
+        sign     : W_uv = 1 - 2*eta*q_uv   (the method; eta=0 is the unsigned backbone)
+        reweight : W_uv = 1 - q_uv         (the sign family at eta=1/2)
+        prune    : W_uv = 1[q_uv < tau]
+        none     : W_uv = 0 off the diagonal, so L=0 and every channel is a
+                   multiple of the encoder output (the feature-only reference
+                   with the same encoder and head)
+    Self-loops always keep weight 1.
     """
-    s_hat = 1.0 - 2.0 * q
-    s_hat = torch.where(self_loop_mask, torch.ones_like(s_hat), s_hat)  # a node cannot be heterophilic with itself
-    W = (1.0 - eta) + eta * s_hat
+    if variant == 'sign':
+        s_hat = 1.0 - 2.0 * q
+        s_hat = torch.where(self_loop_mask, torch.ones_like(s_hat), s_hat)  # a node cannot be heterophilic with itself
+        W = (1.0 - eta) + eta * s_hat
+    elif variant == 'reweight':
+        W = torch.where(self_loop_mask, torch.ones_like(q), 1.0 - q)
+    elif variant == 'prune':
+        if tau is None:
+            raise ValueError("variant='prune' requires tau")
+        W = torch.where(self_loop_mask, torch.ones_like(q), (q < tau).to(q.dtype))
+    elif variant == 'none':
+        W = self_loop_mask.to(q.dtype)
+    else:
+        raise ValueError('unknown variant {!r}'.format(variant))
     absW = W.abs()
 
     with graph.local_scope():
@@ -116,13 +140,27 @@ class SignedBetaWaveletConv(nn.Module):
 
 
 class EC_SBWGNN(nn.Module):
+    """q_calibrated is frozen (a buffer). eta and the channel gate are the only
+    operator-side parameters.
+
+    learn_eta=True  : eta = eta_max * sigmoid(eta_raw), started at eta_init
+                      (eta_max=1 is the paper's range; Proposition 1 holds for
+                      every eta >= 0, so eta_max=2 is a valid ablation).
+    learn_eta=False : eta is fixed at eta_init exactly (0 and 1 included).
+    variant / tau   : see build_signed_normalized_weight.
+    gate_mode       : 'learnable' (softmax of trained logits) or 'uniform'.
+    """
+
     def __init__(self, in_feats, h_feats, num_classes, graph, q_calibrated,
-                 d=2, eta_init=0.5, gate_prior=None):
+                 d=2, eta_init=0.5, gate_prior=None, learn_eta=True, eta_max=1.0,
+                 variant='sign', tau=None, gate_mode='learnable'):
         super().__init__()
         self.g = graph
         src, dst = graph.edges()
         self.register_buffer('q', q_calibrated)
         self.register_buffer('self_loop_mask', src == dst)
+        self.variant = variant
+        self.tau = tau
 
         self.thetas = calculate_theta2(d=d)
         self.num_channels = len(self.thetas)
@@ -134,16 +172,28 @@ class EC_SBWGNN(nn.Module):
         self.linear4 = nn.Linear(h_feats, num_classes)
         self.act = nn.ReLU()
 
-        eta_init = min(max(eta_init, 1e-3), 1 - 1e-3)
-        self.eta_raw = nn.Parameter(torch.logit(torch.tensor(float(eta_init))))
-        self.gate_logits = nn.Parameter(torch.zeros(self.num_channels))
+        self.learn_eta = learn_eta
+        self.eta_max = float(eta_max)
+        if learn_eta:
+            frac = min(max(eta_init / self.eta_max, 1e-3), 1 - 1e-3)
+            self.eta_raw = nn.Parameter(torch.logit(torch.tensor(float(frac))))
+        else:
+            self.register_buffer('eta_fixed', torch.tensor(float(eta_init)))
+
+        self.gate_mode = gate_mode
+        if gate_mode == 'uniform':
+            self.register_buffer('gate_logits', torch.zeros(self.num_channels))
+        else:
+            self.gate_logits = nn.Parameter(torch.zeros(self.num_channels))
         if gate_prior is None:
             gate_prior = torch.full((self.num_channels,), 1.0 / self.num_channels)
         self.register_buffer('gate_prior', gate_prior)
 
     @property
     def eta(self):
-        return torch.sigmoid(self.eta_raw)
+        if self.learn_eta:
+            return self.eta_max * torch.sigmoid(self.eta_raw)
+        return self.eta_fixed
 
     def gate(self):
         return torch.softmax(self.gate_logits, dim=-1)
@@ -154,13 +204,34 @@ class EC_SBWGNN(nn.Module):
         log_g0 = torch.log(self.gate_prior.clamp(min=1e-12))
         return F.kl_div(log_g0, g, reduction='sum')
 
-    def forward(self, in_feat, return_diagnostics=False):
-        w_norm, W, D = build_signed_normalized_weight(self.g, self.q, self.eta, self.self_loop_mask)
-
+    def encode(self, in_feat):
+        """Encoder output H^(0), before any propagation."""
         h = self.act(self.linear(in_feat))
-        h = self.act(self.linear2(h))
+        return self.act(self.linear2(h))
 
-        channel_outputs = [conv(self.g, h, w_norm) for conv in self.convs]
+    def channels(self, h, w_norm):
+        """All Beta channels B_k(L_eta) h. The powers L_eta^j h are computed
+        once and shared across channels (P sparse products per forward pass
+        in place of (P+1)P)."""
+        with self.g.local_scope():
+            self.g.edata['w_norm'] = w_norm
+            powers = [h]
+            for _ in range(len(self.thetas[0]) - 1):
+                self.g.ndata['h'] = powers[-1]
+                self.g.update_all(fn.u_mul_e('h', 'w_norm', 'm'), fn.sum('m', 'h'))
+                powers.append(powers[-1] - self.g.ndata['h'])
+        return [sum(theta[j] * powers[j] for j in range(len(theta))) for theta in self.thetas]
+
+    def forward(self, in_feat, return_diagnostics=False, eta=None, q=None):
+        """eta / q override the model's own strength and scores for this call
+        only (used to evaluate one trained model under another operator)."""
+        eta = self.eta if eta is None else eta
+        q = self.q if q is None else q
+        w_norm, W, D = build_signed_normalized_weight(self.g, q, eta, self.self_loop_mask,
+                                                      variant=self.variant, tau=self.tau)
+
+        h = self.encode(in_feat)
+        channel_outputs = self.channels(h, w_norm)
         g = self.gate()
         scaled = [torch.sqrt(g[k].clamp(min=1e-12)) * channel_outputs[k] for k in range(self.num_channels)]
         h_final = torch.cat(scaled, dim=-1)
@@ -176,5 +247,6 @@ class EC_SBWGNN(nn.Module):
             # r_- = |{(u,v): W^(eta)_uv < 0}| / |E| -- fraction of edges the
             # calibrated signing actually flips to heterophilic/contrastive.
             r_minus = (W < 0).float().mean()
-        diag = {'eta': self.eta.detach(), 'gate': g.detach(), 'channel_energy': energies, 'r_minus': r_minus.detach()}
+        eta_t = eta.detach() if torch.is_tensor(eta) else torch.tensor(float(eta))
+        diag = {'eta': eta_t, 'gate': g.detach(), 'channel_energy': energies, 'r_minus': r_minus.detach()}
         return logits, diag
