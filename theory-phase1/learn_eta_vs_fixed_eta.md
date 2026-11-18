@@ -1,6 +1,6 @@
 # Learned η against fixed η, and ESO-GAD against feature-only models
 
-Nov 18, 2026 · companion to `theory.md` and `experiment.md` · every number here is from this workspace; the run folders are listed at the end
+Nov 18, 2026 · companion to `theory.md` and `experiment.md` · every number here is from the Nov 18 workspace on the earlier machine; the run folders are listed at the end. **The workspace moved on Nov 19:** `src/` is now `wsdm-2026/BWGNN_codebase/`, and the scripts and `runs/` folders named here are not on the new machine (`experiment.md`, "Workspace on this machine")
 
 ## The question
 

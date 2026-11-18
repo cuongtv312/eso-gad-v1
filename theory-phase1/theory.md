@@ -10,6 +10,7 @@ Nov 14, 2026 · the theory is in the paper (Section 5 and Appendix A); this file
 - **Theory first (author, Nov 17).** The next experiments are the ones that check or extend the theory: the "Theory-first track" of `experiment.md`. Its scouting part (C16–C19, C9, C10) decides which of the candidate results N1–N7 below are worth proving.
 - **Open with the authors.** Six findings about the method (M1–M6) and the description of cross-fitting in Section 4.1 need a decision; see "Remaining theory work", task T1.
 - **Code folder replaced on Nov 17.** `src-code/` is gone; `src/` is a fresh clone of the GitHub repository. `theory_check.py` and the Nov 14 code changes were restored from the session transcript and committed on branch `icml2027` as `85e68f9` (not pushed).
+- **Workspace moved on Nov 19.** The source is now `wsdm-2026/BWGNN_codebase/` (read `src/` as that folder), the data is in `wsdm-2026/GADBench-master/datasets/`, the environment is `gcnenv`. **`theory_check.py` and the `runs/` folders did not come along**: the 27 synthetic checks and the real-graph diagnostics below were run on the earlier machine and cannot be re-run here until the script is copied over or rewritten. The code behind the WSDM tables was found in `wsdm-2026/GADBench-master/`; its cross-fitting rule is the one Section 4.1 describes. Details in `experiment.md`, "Workspace on this machine".
 
 ## What the theory says
 
@@ -370,7 +371,7 @@ Done on Nov 14:
 
 Three things in the paper go beyond a literal port and need the authors' confirmation:
 
-- Section 4.1 now *describes* the cross-fitting rule (node-grouped folds, an edge scored by the models whose held-out fold contains an endpoint). This follows `src/edge_calibration.py`; confirm it matches the code behind the WSDM tables.
+- Section 4.1 now *describes* the cross-fitting rule (node-grouped folds, an edge scored by the models whose held-out fold contains an endpoint). This follows `src/edge_calibration.py`. **Confirmed on Nov 19:** the WSDM detector (`wsdm-2026/GADBench-master/models/gnn.py`, `echogad_cross_fitted_edge_calibration`) uses the same rule.
 - Proposition 3 states the residual label dependence of that rule openly and names the pair-excluded variant as the exact fix, without claiming the method uses it.
 - Section 5.3 mentions soft imputation of the unlabeled endpoint as the unbiased alternative to the paper's rule, again without claiming it is used.
 
@@ -421,4 +422,5 @@ Working rule: when a statement changes, change `theory.tex`, `proof.tex`, the ma
 - **The check of Corollary 5 is not informative yet.** It passes, but no node was misaligned at the sampled noise levels. An instance with larger, structured errors would show how loose the bound is.
 - **The stand-in calibrator** in `theory_check.py real` skips neighborhood-overlap statistics on YelpChi (memory). The YelpChi edge AUROC may improve once they are computed.
 - **References.** The six new entries in `references.bib` were verified online. Lemma 2 is proved in the appendix, so no reference is needed for it.
-- **`theory_check.py` is committed** (`85e68f9` on `icml2027`, not pushed). The paper's appendix reports its results, so the script has to be in the repository that is released.
+- **`theory_check.py` is committed** (`85e68f9` on `icml2027`, not pushed) **on the earlier machine only.** It is not in this workspace or in the `phase1` branch. The paper's appendix reports its results, so the script has to be in the repository that is released.
+- **Directed graphs.** Everything here assumes an undirected graph. GADBench stores Weibo, Tolokers and Questions directed, and the WSDM runs used them as stored. Runs that are meant to match the theory have to symmetrize these three first.

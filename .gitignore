@@ -1,0 +1,30 @@
+# Only three things are tracked: the ESO-GAD source, theory-phase1/ and the
+# ICML paper sources. Everything else (datasets, third-party baselines, WSDM
+# material, results, build products) stays local.
+/*
+!/.gitignore
+!/theory-phase1/
+!/icml-paper/
+!/wsdm-2026/
+
+/icml-paper/*
+!/icml-paper/icml_ESO_GAD/
+
+/wsdm-2026/*
+!/wsdm-2026/BWGNN_codebase/
+/wsdm-2026/BWGNN_codebase/*
+!/wsdm-2026/BWGNN_codebase/*.py
+
+# LaTeX build products
+/icml-paper/icml_ESO_GAD/main.pdf
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+
+__pycache__/
+*.pyc

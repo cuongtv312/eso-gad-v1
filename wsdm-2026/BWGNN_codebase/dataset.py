@@ -1,26 +1,47 @@
+import os
+
 from dgl.data import FraudYelpDataset, FraudAmazonDataset
 from dgl.data.utils import load_graphs, save_graphs
 import dgl
 import numpy as np
 import torch
 
-# GADBench's own pre-built graph files (reddit/weibo/tolokers), reused here
-# so the mechanism-validation sweep can run on additional GADBench datasets
-# without a separate loading pipeline.
-GADBENCH_DATASETS_DIR = '/home/gnn/wsdm-2026/GADBench-master/datasets'
+_HERE = os.path.dirname(os.path.abspath(__file__))
+
+# GADBench's pre-built homogeneous graph files, each shipped with self-loops
+# and the 20 split columns (train_masks/val_masks/test_masks; columns 10-19
+# are the semi-supervised 100-label splits). Override with ESOGAD_DATA_DIR.
+GADBENCH_DATASETS_DIR = os.environ.get(
+    'ESOGAD_DATA_DIR', os.path.normpath(os.path.join(_HERE, '..', 'GADBench-master', 'datasets')))
+GADBENCH_DATASETS = ('reddit', 'weibo', 'tolokers', 'questions', 'amazon', 'yelp', 'tfinance', 'elliptic')
+
+# BWGNN's own files (one-hot T-Finance labels, T-Social), used only by the
+# original BWGNN options below.
+BWGNN_DATASETS_DIR = os.path.join(_HERE, 'dataset')
 
 
 class Dataset:
-    def __init__(self, name='tfinance', homo=True, anomaly_alpha=None, anomaly_std=None):
+    def __init__(self, name='tfinance', homo=True, anomaly_alpha=None, anomaly_std=None, source='gadbench'):
+        """source='gadbench' (default) reads the homogeneous graph from
+        GADBENCH_DATASETS_DIR whenever GADBench ships one. source='dgl' keeps
+        BWGNN's original loaders (DGL's multi-relation Amazon/YelpChi, BWGNN's
+        T-Finance file); homo=False and the T-Finance anomaly_* options
+        always use them."""
         self.name = name
         graph = None
-        if name == 'tfinance':
-            graph, label_dict = load_graphs('dataset/tfinance')
+        use_gadbench = (source == 'gadbench' and homo and name in GADBENCH_DATASETS
+                        and not anomaly_alpha and not anomaly_std)
+        if use_gadbench:
+            graph, label_dict = load_graphs(os.path.join(GADBENCH_DATASETS_DIR, name))
+            graph = graph[0]
+
+        elif name == 'tfinance':
+            graph, label_dict = load_graphs(os.path.join(BWGNN_DATASETS_DIR, 'tfinance'))
             graph = graph[0]
             graph.ndata['label'] = graph.ndata['label'].argmax(1)
 
             if anomaly_std:
-                graph, label_dict = load_graphs('dataset/tfinance')
+                graph, label_dict = load_graphs(os.path.join(BWGNN_DATASETS_DIR, 'tfinance'))
                 graph = graph[0]
                 feat = graph.ndata['feature'].numpy()
                 anomaly_id = graph.ndata['label'][:,1].nonzero().squeeze(1)
@@ -30,7 +51,7 @@ class Dataset:
                 graph.ndata['label'] = graph.ndata['label'].argmax(1)
 
             if anomaly_alpha:
-                graph, label_dict = load_graphs('dataset/tfinance')
+                graph, label_dict = load_graphs(os.path.join(BWGNN_DATASETS_DIR, 'tfinance'))
                 graph = graph[0]
                 feat = graph.ndata['feature'].numpy()
                 anomaly_id = list(graph.ndata['label'][:, 1].nonzero().squeeze(1))
@@ -47,12 +68,7 @@ class Dataset:
                     label[idx] = 1  # 0
 
         elif name == 'tsocial':
-            graph, label_dict = load_graphs('dataset/tsocial')
-            graph = graph[0]
-
-        elif name in ('reddit', 'weibo', 'tolokers'):
-            import os
-            graph, label_dict = load_graphs(os.path.join(GADBENCH_DATASETS_DIR, name))
+            graph, label_dict = load_graphs(os.path.join(BWGNN_DATASETS_DIR, 'tsocial'))
             graph = graph[0]
 
         elif name == 'yelp':

@@ -149,7 +149,7 @@ def train(g, args, return_dict=False):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='EC-SBWGNN')
     parser.add_argument("--dataset", type=str, default="amazon",
-                        help="Dataset for this model (yelp/amazon/tfinance/tsocial)")
+                        help="Dataset for this model (amazon/yelp/tfinance/reddit/weibo/tolokers/questions/tsocial)")
     parser.add_argument("--train_ratio", type=float, default=0.4, help="Training ratio")
     parser.add_argument("--hid_dim", type=int, default=64, help="Hidden layer dimension")
     parser.add_argument("--order", type=int, default=2, help="Wavelet order C in Beta/Bernstein bank")
