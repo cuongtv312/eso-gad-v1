@@ -382,7 +382,45 @@ For $u\in\mathcal M$ we have $|r_u-\kappa_0\sqrt{D^\star_{uu}}\,\bar y_u|\ge\kap
 Dividing by $\kappa_0^2\sum_uD^\star_{uu}$ and using $\Lambda_0/\kappa_0=P/2$ gives the claim.
 \hfill$\square$
 
+\subsection{Proof of Theorem~\ref{thm:brier-snr}}
+Fix a node $u$ and let $\bm w=(W_{uv})_v$ and $\bm s=(\sstar_{uv})_v$ be the vectors of weights and of true signs over the $\tilde d_u$ edges of $u$, self-loop included.
+Then $\|\bm s\|_2=\sqrt{\tilde d_u}$, and $\bm w\neq\bm 0$ because $W_{uu}=1$.
+
+\emph{(i)} By Theorem~\ref{thm:snr}(a) and Eq.~\eqref{eq:margin},
+\[
+\snr_u=\mar_u\sqrt{\deff_u}=\frac{\sum_vW_{uv}\sstar_{uv}}{\sum_v|W_{uv}|}\cdot\frac{\sum_v|W_{uv}|}{\bigl(\sum_vW_{uv}^2\bigr)^{1/2}}
+=\frac{\langle\bm w,\bm s\rangle}{\|\bm w\|_2}=\sqrt{\tilde d_u}\,\cos\theta_u .
+\]
+
+\emph{(ii)} The squared distance from $\bm s$ to the line spanned by $\bm w$ is $\|\bm s\|_2^2\sin^2\theta_u$, and it is at most $\|\bm s-\bm w\|_2^2$ because $\bm w$ lies on that line.
+Since $W_{uv}-\sstar_{uv}=(1-2\eta\hat q_{uv})-(1-2\tstar_{uv})=-2(\eta\hat q_{uv}-\tstar_{uv})$, also on the self-loop where both sides vanish, $\|\bm s-\bm w\|_2^2=4\,\tilde d_u\,b^{\eta}_u$.
+With (i), $\tilde d_u-\snr_u^2=\tilde d_u\sin^2\theta_u\le4\,\tilde d_u\,b^{\eta}_u$.
+If $\langle\bm w,\bm s\rangle\le0$, then $\|\bm s-\bm w\|_2^2=\|\bm s\|_2^2-2\langle\bm w,\bm s\rangle+\|\bm w\|_2^2\ge\|\bm s\|_2^2$, i.e., $b^{\eta}_u\ge\tfrac14$.
+Hence $b^{\eta}_u<\tfrac14$ implies $\snr_u>0$, and the lower bound on $\snr_u^2$ gives the one on $\snr_u$.
+
+\emph{(iii)} By Theorem~\ref{thm:freq}, $\rho_\eta(\hat q)=2\Fr_\eta(\hat q)$.
+On an edge with $W_{uv}\neq0$ and $\sigma_{uv}\neq\sstar_{uv}$ we have $|W_{uv}-\sstar_{uv}|=|W_{uv}|+1$, hence $(W_{uv}-\sstar_{uv})^2\ge4|W_{uv}|$.
+Summing over these edges,
+\[
+\sum_{u,v}|W_{uv}|\,\mathds{1}[\sigma_{uv}\neq\sstar_{uv}]\le\tfrac14\sum_{u,v}(W_{uv}-\sstar_{uv})^2=\sum_{u,v}\bigl(\eta\hat q_{uv}-\tstar_{uv}\bigr)^2=\sum_u\tilde d_u\,b^{\eta}_u ,
+\]
+and the denominator of Eq.~\eqref{eq:frustration} is $\sum_{u,v}|W_{uv}|=\sum_uD_{uu}$.
+At $\eta=0$ every weight is $1$, the wrongly signed edges are the heterophilic ones, and $(0-\tstar_{uv})^2=\tstar_{uv}$, so the inequality holds with equality.
+\hfill$\square$
+
+\subsection{Proof of Corollary~\ref{cor:breakdown}}
+\emph{(i)} The first claim is Theorem~\ref{thm:brier-snr}(ii).
+For the second, $b^{\eta}_u\le\tilde h_u(1-\tilde h_u)$ gives $\snr_u^2\ge\tilde d_u\bigl(1-4\tilde h_u(1-\tilde h_u)\bigr)=\tilde d_u(1-2\tilde h_u)^2$, the squared unsigned value of Theorem~\ref{thm:snr}(b).
+
+\emph{(ii)} For hard signs, $\|\bm w\|_2=\sqrt{\tilde d_u}$ and $\langle\bm w,\bm s\rangle=\tilde d_u(1-2\epsilon_u)$, so Theorem~\ref{thm:brier-snr}(i) gives $\snr_u=(1-2\epsilon_u)\sqrt{\tilde d_u}$.
+All absolute weights equal $1$, so $\Fr=\epsilon$ and the label frequency is $2\epsilon$ by Theorem~\ref{thm:freq}.
+The unsigned operator has $W_{uv}=1$, which differs from $\sstar_{uv}$ exactly on the heterophilic edges, so $\epsilon_u=\tilde h_u$ and $\epsilon=H/M$.
+
+\emph{(iii)} $\sum_u\tilde d_u\,b^{\eta}_u=\eta^2\sum_{u,v}\hat q_{uv}^{\,2}-2\eta\sum_{u,v}\hat q_{uv}\tstar_{uv}+H$ is a convex quadratic in $\eta$ with minimizer $\eta_{\mathrm{LS}}$ and minimum $H-\bigl(\sum_{u,v}\hat q_{uv}\tstar_{uv}\bigr)^2/\sum_{u,v}\hat q_{uv}^{\,2}=H\sin^2\!\angle(\hat q,\bm t^\star)$, because $\sum_{u,v}(\tstar_{uv})^2=H$.
+If $\Pr[\tstar_{uv}=1\mid\hat q]=\eta_0\hat q_{uv}$, then $\mathbb E[\eta_{\mathrm{LS}}\mid\hat q]=\eta_0$.
+\hfill$\square$
+
 \subsection{Numerical checks}\label{app:numerical}
 Every identity and bound of Section~\ref{sec:theory} was checked numerically on random two-class graphs with random score vectors and $\eta\in[0,1.6]$.
-The spectral inclusion of Proposition~\ref{prop:valid} holds for every sampled $\eta$, the identities of Theorems~\ref{thm:gauge}, \ref{thm:freq} and~\ref{thm:snr}(a) and the gap formula of Theorem~\ref{thm:optimal}(iii) hold to machine precision, and Proposition~\ref{prop:e1} is reproduced by simulation under uniform and class-dependent labeling.
+The spectral inclusion of Proposition~\ref{prop:valid} holds for every sampled $\eta$, the identities of Theorems~\ref{thm:gauge}, \ref{thm:freq}, \ref{thm:snr}(a) and~\ref{thm:brier-snr}(i) and the gap formula of Theorem~\ref{thm:optimal}(iii) hold to machine precision, and Proposition~\ref{prop:e1} is reproduced by simulation under uniform and class-dependent labeling.
 No bound was violated; the largest observed ratio between the left and right sides was $0.16$ for Theorem~\ref{thm:stab}, $0.06$ for Theorem~\ref{thm:brier} and $0.06$ for Theorem~\ref{thm:repr}.

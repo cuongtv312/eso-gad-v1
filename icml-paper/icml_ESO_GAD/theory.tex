@@ -6,6 +6,7 @@ Section~\ref{sec:theory-spectral} locates the label signal in the spectrum of $\
 Section~\ref{sec:theory-node} analyzes separability at node level and derives the optimal edge weights.
 Section~\ref{sec:theory-supervision} characterizes what the weak edge supervision of Phase~1 identifies.
 Section~\ref{sec:theory-stability} bounds the effect of calibration errors on the operator and on the representation.
+Section~\ref{sec:theory-brier} shows that node separability loses only a second-order term in these errors, the local Brier score, and derives the breakdown points of signing.
 All proofs are deferred to Appendix~\ref{app:proofs}.
 
 \paragraph{Notation.}
@@ -339,3 +340,54 @@ The $D^\star$-weighted fraction of nodes $u$ at which the low-pass label respons
 
 Corollary~\ref{cor:misaligned} is a worst-case guarantee and is informative only for small local errors.
 The exact identities of Theorems~\ref{thm:freq} and~\ref{thm:snr} are the quantities to evaluate on data.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{From Calibration Error to Separability}\label{sec:theory-brier}
+
+The bounds of Section~\ref{sec:theory-stability} are Lipschitz statements: the operator and the representation move at most linearly in the local calibration error.
+For the quantity that decides detection, the node factor $\snr_u$ of Theorem~\ref{thm:snr}, more is true.
+It depends on the calibration error only through its square, and this holds for every calibrator, without Assumption~\ref{ass:reliability}.
+For a strength $\eta\ge0$, let
+\begin{equation}
+b^{\eta}_u=\frac{1}{\tilde d_u}\sum_v\tilde A_{uv}\bigl(\eta\,\hat q_{uv}-\tstar_{uv}\bigr)^2
+\label{eq:localbrier}
+\end{equation}
+be the local Brier score at node $u$ of the recalibrated scores $\eta\hat q$ against the true edge semantics, i.e., $b_u$ of Eq.~\eqref{eq:localerrors} for the pair $(\eta\hat q,\bm t^\star)$.
+
+\begin{theorem}[The Brier score controls separability]\label{thm:brier-snr}
+Let $\hat q$ be any score vector, $\eta\ge0$, and let $\snr_u$ be the node factor of one propagation step $\bm G=\Db{}^{-1}\Wb$ with the weights of Eq.~\eqref{eq:Wentry}. For every graph, every labeling and every node $u$:
+
+\smallskip\noindent\textbf{(i)} $\snr_u=\sqrt{\tilde d_u}\,\cos\theta_u$, where $\theta_u$ is the angle between the weights $(W_{uv})_v$ and the true signs $(\sstar_{uv})_v$ of the edges of $u$.
+
+\smallskip\noindent\textbf{(ii)} $\snr_u^2\ge\tilde d_u\,(1-4\,b^{\eta}_u)$, and if $b^{\eta}_u<\tfrac14$ then $\snr_u\ge\sqrt{\tilde d_u\,(1-4\,b^{\eta}_u)}>0$.
+
+\smallskip\noindent\textbf{(iii)} $\rho_\eta(\hat q)\le2\sum_u\tilde d_u\,b^{\eta}_u\big/\sum_uD_{uu}$, with equality at $\eta=0$.
+\end{theorem}
+
+Oracle signing attains $\snr_u=\sqrt{\tilde d_u}$ (Theorem~\ref{thm:snr}(b)), so part~(ii) states that the share of the squared node factor lost to an imperfect calibrator, $1-\snr_u^2/\tilde d_u=\sin^2\theta_u$, is at most four times the local Brier score.
+The loss is of second order: a calibrator that is off by $\epsilon$ on every edge of $u$ changes the operator and the representation by $O(\epsilon)$ in Theorems~\ref{thm:stab} and~\ref{thm:repr}, but costs only $O(\epsilon^2)$ of the squared node factor.
+The reason is that the oracle weights maximize $\snr_u$, so its first-order sensitivity to the scores vanishes at the oracle.
+This is the mechanism that Neyman orthogonality provides in double machine learning~\citep{DML}, and it is why a frozen, cross-fitted calibrator is an adequate first stage: its errors enter the node-level criterion quadratically, and Proposition~\ref{prop:crossfit} keeps the scores of a node's edges free of that node's own label, up to cross-fold pairs.
+Under Assumption~\ref{ass:features}, part~(ii) and Theorem~\ref{thm:snr}(a) bound the error probability of the one-step readout at $u$ by $\Gt\bigl(\sqrt{\tilde d_u(1-4b^{\eta}_u)}\,\|\bm\mu\|/\sigma\bigr)$ whenever $b^{\eta}_u<\tfrac14$.
+The bound is tight to first order: for the unsigned operator, $\eta=0$ and $b^{0}_u=\tilde h_u$, it reads $1-4\tilde h_u$ against the exact value $(1-2\tilde h_u)^2$.
+Part~(iii) is the spectral counterpart and ties Theorem~\ref{thm:freq} to the Phase~1 loss: the label frequency is at most twice the edge-averaged Brier score of the recalibrated scores, divided by the retained edge mass.
+If $\Pr[\tstar_{uv}=1\mid\hat q]=p(\hat q_{uv})$, as in Assumption~\ref{ass:reliability}, then $\mathbb E[(\eta\hat q_{uv}-\tstar_{uv})^2\mid\hat q]=(\eta\hat q_{uv}-p(\hat q_{uv}))^2+p(\hat q_{uv})(1-p(\hat q_{uv}))$, so the expected local Brier score splits into a recalibration error, which $\eta$ can remove, and the remaining uncertainty of the edge semantics, which only a sharper calibrator can.
+Together with Theorem~\ref{thm:brier}, this makes the Brier term of Eq.~\eqref{eq:LossEC} the quantity that controls both the distance to the oracle operator and the separability that the operator delivers.
+
+\begin{corollary}[Breakdown points and the best strength]\label{cor:breakdown}
+\noindent\textbf{(i)} A node with $\tilde h_u>\tfrac12$, which the unsigned operator places on the wrong side, is placed on the correct side whenever $b^{\eta}_u<\tfrac14$. For every node, $|\snr_u|$ is at least its unsigned value $|1-2\tilde h_u|\sqrt{\tilde d_u}$ whenever $b^{\eta}_u\le\tilde h_u(1-\tilde h_u)$.
+
+\smallskip\noindent\textbf{(ii)} Let the weights be hard signs, $W_{uv}\in\{-1,+1\}$ with $W_{uu}=1$, of which a share $\epsilon_u$ among the edges of $u$ and a share $\epsilon$ among all edges differ from $\sstar_{uv}$. Then $\snr_u=(1-2\epsilon_u)\sqrt{\tilde d_u}$ and the label frequency is $2\epsilon$. The unsigned operator is the case $\epsilon_u=\tilde h_u$, so hard signing lowers the label frequency if and only if its error rate $\epsilon$ is below the edge heterophily ratio $H/M$ of Corollary~\ref{cor:lift}.
+
+\smallskip\noindent\textbf{(iii)} The total local Brier score $\sum_u\tilde d_u\,b^{\eta}_u$ is minimized over $\eta$ at the least-squares slope
+\[
+\eta_{\mathrm{LS}}=\frac{\sum_{u,v}\hat q_{uv}\,\tstar_{uv}}{\sum_{u,v}\hat q_{uv}^{\,2}},
+\]
+where it equals $H\sin^2\!\angle(\hat q,\bm t^\star)$, against $H$ at $\eta=0$.
+\end{corollary}
+
+Part~(i) is the node-level breakdown point: signing repairs a camouflaged node as long as the calibrator's local Brier score stays below $\tfrac14$. This is the level of the uninformative prediction $\eta\hat q\equiv\tfrac12$, at which every neighbor receives weight zero and the node is left with its own features ($\snr_u=1$), so the threshold cannot be improved.
+Part~(ii) expresses the global breakdown point through the heterophily of the graph: sign errors must be rarer than heterophilic edges, which is a demanding requirement on graphs whose edge heterophily is a few percent (Table~\ref{Tab: Dataset statistics}) and an easy one where heterophily is high.
+Soft signs relax it, because an uncertain edge receives a weight near zero instead of a wrong sign.
+Part~(iii) extends Corollary~\ref{cor:slope} beyond linear reliability curves: for an arbitrary calibrator, the single strength with the best guarantee is the least-squares slope of the true indicators on the scores, which coincides with $\eta_0$ in expectation when $p(q)=\eta_0q$ and can be estimated in Phase~1 from the cross-fitted scores of the doubly-labeled edges.
+It also shows that every score vector with $\sum_{u,v}\hat q_{uv}\tstar_{uv}>0$ admits a strength at which the total local Brier score is strictly below that of the unsigned operator.

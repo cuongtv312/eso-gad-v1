@@ -30,7 +30,7 @@ ESO-GAD therefore extends BWGNN along the operator axis, providing the same filt
 Moreover, the same scalar controls where signs flip.
 Since $W^{(\eta)}_{uv}<0$ requires $\hat q_{uv}>1/(2\eta)$, and
 since $\hat q_{uv}\le 1$, no edge can change sign unless $\eta>\tfrac12$.
-For $\eta>0$, an edge is exactly pruned when $\hat q_{uv}=1/(2\eta)$.
+For $\eta\ge\tfrac12$, an edge is exactly pruned when $\hat q_{uv}=1/(2\eta)$.
 Because Eq.~\eqref{eq:Wentry} is affine in
 $\hat q_{uv}$, no choice of $\eta$ reproduces a thresholded pruning rule, and edge deletion survives only on the measure-zero level set $\{\hat q_{uv}=1/(2\eta)\}$.
 This distinguishes ESO-GAD from hard-pruning approaches to heterophily \citep{GHRN, CARE-GNN}, which discard inter-class edges and therefore
@@ -75,7 +75,7 @@ Under this formulation, the channel $k=0$  and $k=P$ are the low-pass filter and
 Intermediate channels cover band-pass responses whose peaks sweep monotonically across the calibrated spectrum.
 It is required that the kernel $\Wk(\Lb)$ is valid for any $\Lb$ constructed from the learned $\hat{q}_{uv}$ and a valid $\eta$, which is established by Proposition~\ref{prop:valid}.
 \begin{proposition}[Spectral validity]\label{prop:valid}
-For every $\hat q\in[0,1]^{|\mathcal E|}$ and every $\eta\ge0$, in particular for every $\eta\in[0,1]$, the following conditions hold
+Let $\tilde{\bm A}=\bm A+\bm I$ and let the scores be symmetric with $\hat q_{uu}=0$. For every such $\hat q\in[0,1]^{|\mathcal E|}$ and every $\eta\ge0$, in particular for every $\eta\in[0,1]$, the following conditions hold
 \[
 \Db\succeq \bm I \succ 0
 \qquad\text{and}\qquad
@@ -134,4 +134,4 @@ $\bm D^{(\eta)}$ from the frozen $\hat{\bm Q}$ in $O(m)$ time and shares the pow
 This results in a per-epoch cost of
 $O\bigl(P\,m\,d_h+P^{2}n\,d_h\bigr)$ with the hidden width $d_h$ of both $\psi$ and $\omega$.
 The cost matches the standard Beta-wavelet bank~\citep{BWGNN}.
-However, the main bottleneck of our ESO-GAD is the operator rebuild with $O(P\,m\,d_h)$ cost, which must be recomputed after each update of the calibration strength $\eta$.
+The coefficients $\theta^{(k)}_j$ are constants that do not depend on $\eta$; what changes with $\eta$ is the operator, which is rebuilt at every step in $O(m)$ time, whereas the unsigned bank builds its operator once. This additional cost is dominated by the $O(P\,m\,d_h)$ propagation by a factor of $P\,d_h$.

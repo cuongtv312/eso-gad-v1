@@ -330,6 +330,44 @@ def check_instance(rng, ck, P=2, tol=1e-9):
     ck.record('c5', 'C12', 'Cor 5', 'share of misaligned nodes below the bound', frac <= bound + 1e-12,
               frac / bound if bound > 0 else 0.0)
 
+    # ---- Theorem 8, Corollary 6: the Brier score controls separability --------
+    S = np.outer(y, y) * At
+    worst_ii, ok_i, ok_ii, ok_c6a = 0.0, True, True, True
+    for q_c, eta_c in ((q, eta), (q_hat, e5)):            # arbitrary scores, and scores close to the oracle
+        Wc8 = At * (1.0 - 2.0 * eta_c * q_c)
+        chi8 = chi_of(Wc8 / np.abs(Wc8).sum(1)[:, None])
+        cos = (Wc8 * S).sum(1) / (np.linalg.norm(Wc8, axis=1) * np.sqrt(deg))
+        ok_i = ok_i and np.abs(chi8 - np.sqrt(deg) * cos).max() < 1e-9
+        b8 = ((eta_c * q_c - t) ** 2 * At).sum(1) / deg
+        good = b8 < 0.25
+        ok_ii = (ok_ii and (chi8 ** 2 >= deg * (1 - 4 * b8) - 1e-9).all()
+                 and (chi8[good] >= np.sqrt(deg[good] * (1 - 4 * b8[good])) - 1e-9).all())
+        worst_ii = max(worst_ii, ((deg - chi8 ** 2) / np.maximum(4 * deg * b8, 1e-12)).max())
+        beat = b8 <= h * (1 - h)
+        ok_c6a = ok_c6a and (np.abs(chi8[beat]) >= np.abs(1 - 2 * h[beat]) * np.sqrt(deg[beat]) - 1e-9).all()
+        if q_c is q:
+            bound8 = 2 * (deg * b8).sum() / np.abs(Wc8).sum()
+            rho8 = 2 * frustration(Wc8, y)
+    ck.record('t8a', 'C15', 'Thm 8(i)', 'chi_u = sqrt(d_u) cos(theta_u)', ok_i)
+    ck.record('t8b', 'C15', 'Thm 8(ii)', 'chi_u^2 >= d_u (1 - 4 b_u); correct side when b_u < 1/4', ok_ii, worst_ii)
+    ck.record('t8c', 'C15', 'Thm 8(iii)', 'rho_eta <= 2 sum_u d_u b_u / sum_u D_uu, with equality at eta = 0',
+              rho8 <= bound8 + 1e-10 and abs(2 * frustration(At.copy(), y) - 2 * ((0.0 * q - t) ** 2 * At).sum() / M) < 1e-12,
+              rho8 / bound8)
+    ck.record('c6a', 'C16', 'Cor 6(i)', '|chi_u| at least its unsigned value when b_u <= h_u (1 - h_u)', ok_c6a)
+    flips = np.triu(rng.rand(n, n) < rng.uniform(0.0, 0.5), 1)
+    Wh = At * np.where(flips | flips.T, -S, S)
+    np.fill_diagonal(Wh, 1.0)
+    eps_u = ((Wh != S) & (At > 0)).sum(1) / deg
+    ok = (np.abs(chi_of(Wh / np.abs(Wh).sum(1)[:, None]) - (1 - 2 * eps_u) * np.sqrt(deg)).max() < 1e-9
+          and abs(2 * frustration(Wh, y) - 2 * (eps_u * deg).sum() / M) < 1e-10)
+    ck.record('c6b', 'C16', 'Cor 6(ii)', 'hard signs: chi_u = (1 - 2 eps_u) sqrt(d_u), label frequency = 2 eps', ok)
+    total = lambda e: ((e * q - t) ** 2 * At).sum()
+    eta_ls = (q * t).sum() / (q ** 2).sum()
+    sin2 = 1 - (q * t).sum() ** 2 / ((q ** 2).sum() * Hn)
+    ck.record('c6c', 'C16', 'Cor 6(iii)', 'least-squares slope minimises the total local Brier score, at H sin^2',
+              total(eta_ls) <= min(total(eta_ls + 1e-3), total(eta_ls - 1e-3)) and abs(total(eta_ls) - Hn * sin2) < 1e-8
+              and abs(total(0.0) - Hn) < 1e-9)
+
     # ---- channels sum to a multiple of the identity (theory.md, N9) ----------
     total = sum(beta_channel(L, k, P) for k in range(P + 1))
     ck.record('n9', 'N9', 'identity (not in paper)', 'sum_k W_k(L_eta) = (P+1)/2 I for every eta and q',
